@@ -234,7 +234,7 @@ export default function Settings({ showToast }) {
         )}
       </div>
 
-      <div className="inner-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
+      <div className="inner-tabs" style={{ display: 'flex', gap: '16px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '10px', paddingLeft: '16px' }}>
         <button 
           className={`inner-tab-btn ${subTab === 'general' ? 'active' : ''}`} 
           onClick={() => setSubTab('general')}
