@@ -199,6 +199,11 @@ export default function UsersManagement({ showToast }) {
 
       {activeSubTab === 'users' && (
         <div className="section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '0 4px' }}>
+            <div style={{ fontSize: '14px', color: 'var(--text-2)' }}>Lista de usuários cadastrados no estúdio</div>
+            <button className="btn btn-gold btn-sm" onClick={() => { setGeneratedLink(''); setInviteModalOpen(true); }}>+ Novo Usuário</button>
+          </div>
+
           {loading ? (
             <div className="empty">
               <div className="spinner"></div>

@@ -136,6 +136,7 @@ app.post('/auth/login', async (req, res) => {
   if (isSuper) {
     req.session.authenticated = true;
     req.session.user = username;
+    req.session.userName = 'Super Admin';
     req.session.role = 'admin';
     return res.redirect('/');
   }
@@ -152,6 +153,7 @@ app.post('/auth/login', async (req, res) => {
       const u = dbUserRes.rows[0];
       req.session.authenticated = true;
       req.session.user = u.email;
+      req.session.userName = u.name;
       req.session.role = u.role;
       return res.redirect('/');
     }
@@ -176,6 +178,7 @@ app.get('/api/me', (req, res) => {
   }
   const isSuper = isUserSuperAdmin(req.session.user);
   res.json({
+    name: isSuper ? (process.env.DASHBOARD_USER_NAME || 'Super Admin') : (req.session.userName || req.session.user),
     email: req.session.user,
     isSuperAdmin: isSuper,
     role: isSuper ? 'admin' : (req.session.role || 'user')
@@ -190,7 +193,7 @@ app.get('/api/users', requireSuperAdmin, async (req, res) => {
     // Insere o Super Admin virtual no topo da lista
     const superAdminUser = {
       id: 'super-admin',
-      name: 'Super Admin',
+      name: process.env.DASHBOARD_USER_NAME || 'Super Admin',
       email: getSuperAdminEmail(),
       role: 'admin',
       created_at: new Date().toISOString(),
