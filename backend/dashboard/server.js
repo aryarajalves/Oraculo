@@ -319,8 +319,15 @@ app.get("/api/carousels/:id", async (req, res) => {
 // ── API: Create carousel ─────────────────────────────────────────────────────
 app.post("/api/carousels", async (req, res) => {
   const all = await readData();
+  let nextIdNum = all.length + 1;
+  let newId = `carrossel-${String(nextIdNum).padStart(2, "0")}`;
+  while (all.some(x => x.id === newId)) {
+    nextIdNum++;
+    newId = `carrossel-${String(nextIdNum).padStart(2, "0")}`;
+  }
+
   const newCarousel = {
-    id: `carrossel-${String(all.length + 1).padStart(2, "0")}`,
+    id: newId,
     title: req.body.title || "Sem título",
     theme: req.body.theme || "",
     format: req.body.format || "A",
@@ -353,12 +360,35 @@ app.put("/api/carousels/:id", async (req, res) => {
   res.json(all[idx]);
 });
 
-// ── API: Delete carousel ─────────────────────────────────────────────────────
-app.delete("/api/carousels/:id", async (req, res) => {
-  const all = await readData();
-  const filtered = all.filter(x => x.id !== req.params.id);
-  await writeData(filtered);
-  res.json({ ok: true });
+// ── API: Bulk Delete carousels ────────────────────────────────────────────────
+app.post("/api/carousels/bulk-delete", async (req, res) => {
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids)) {
+    return res.status(400).json({ error: "Lista de ids inválida" });
+  }
+
+  let all = await readData();
+  let deletedCount = 0;
+
+  for (const id of ids) {
+    const index = all.findIndex(x => x.id === id);
+    if (index !== -1) {
+      const c = all[index];
+      try {
+        const localDir = getLocalSlidesDir(c);
+        if (localDir && fs.existsSync(localDir)) {
+          fs.rmSync(localDir, { recursive: true, force: true });
+        }
+      } catch (e) {
+        console.error(`Erro ao apagar pasta ${c.slidesDir}:`, e.message);
+      }
+      all.splice(index, 1);
+      deletedCount++;
+    }
+  }
+
+  await writeData(all);
+  res.json({ ok: true, deletedCount, message: `${deletedCount} carrosséis apagados com sucesso` });
 });
 
 // ── API: Serve slide images ──────────────────────────────────────────────────
@@ -732,6 +762,12 @@ app.get("/api/stats", async (req, res) => {
     byStatus: statusCount,
     totalCost: Math.round(totalCost * 10000) / 10000,
     lastUpdated: new Date().toISOString(),
+    // Compatibilidade com o Frontend Dashboard.jsx
+    total: all.length,
+    slides: totalSlides,
+    aprovados: (statusCount['aprovado'] || 0) + (statusCount['pronto'] || 0),
+    publicados: statusCount['publicado'] || 0,
+    cost: Math.round(totalCost * 10000) / 10000,
   });
 });
 

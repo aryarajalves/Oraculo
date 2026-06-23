@@ -12,10 +12,44 @@ export default function Dashboard({
 }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedCards, setExpandedCards] = useState({});
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const PAGE_SIZE = 12;
+
+  // Filter & Pagination
+  const filtered = allCarousels.filter(c => {
+    if (filterStatus === 'all') return true;
+    return c.status === filterStatus;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageStartIndex = (currentPage - 1) * PAGE_SIZE;
+  const paginated = filtered.slice(pageStartIndex, pageStartIndex + PAGE_SIZE);
+
+  // Reseta seleção ao mudar o filtro
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [filterStatus]);
 
   const toggleExpand = (id) => {
     setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleSelectCard = (id) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    const allFilteredIds = filtered.map(c => c.id);
+    const isAllSelected = allFilteredIds.length > 0 && allFilteredIds.every(id => selectedIds.includes(id));
+    if (isAllSelected) {
+      setSelectedIds(prev => prev.filter(id => !allFilteredIds.includes(id)));
+    } else {
+      setSelectedIds(prev => Array.from(new Set([...prev, ...allFilteredIds])));
+    }
   };
 
   const handleStatusChange = async (carouselId, status) => {
@@ -66,13 +100,14 @@ export default function Dashboard({
     }
   };
 
-  const handleDelete = async (carouselId) => {
-    // Popup de confirmação centralizado (obrigatório pelas regras de UX!)
-    if (!confirm('Tem certeza que deseja excluir este carrossel?')) return;
+  const confirmDeleteIndividual = async () => {
+    if (!deleteTargetId) return;
     try {
-      const res = await fetch(`/api/carousels/${carouselId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/carousels/${deleteTargetId}`, { method: 'DELETE' });
       if (res.ok) {
-        showToast('Carrossel excluído.');
+        showToast('Carrossel excluído com sucesso.');
+        setSelectedIds(prev => prev.filter(x => x !== deleteTargetId));
+        setDeleteTargetId(null);
         onLoadCarousels();
       }
     } catch (e) {
@@ -80,15 +115,27 @@ export default function Dashboard({
     }
   };
 
-  // Filter & Pagination
-  const filtered = allCarousels.filter(c => {
-    if (filterStatus === 'all') return true;
-    return c.status === filterStatus;
-  });
+  const confirmDeleteBulk = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      const res = await fetch('/api/carousels/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds })
+      });
+      if (res.ok) {
+        showToast(`${selectedIds.length} carrosséis excluídos.`);
+        setSelectedIds([]);
+        setIsBulkDeleteModalOpen(false);
+        onLoadCarousels();
+      }
+    } catch (e) {
+      showToast('Erro ao excluir carrosséis em lote.');
+    }
+  };
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageStartIndex = (currentPage - 1) * PAGE_SIZE;
-  const paginated = filtered.slice(pageStartIndex, pageStartIndex + PAGE_SIZE);
+  const allFilteredIds = filtered.map(c => c.id);
+  const isAllSelected = allFilteredIds.length > 0 && allFilteredIds.every(id => selectedIds.includes(id));
 
   return (
     <div>
@@ -116,8 +163,28 @@ export default function Dashboard({
       </div>
 
       <div className="section">
-        <div className="section-header">
-          <div className="section-title">Carrosséis</div>
+        <div className="section-header" style={{ flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div className="section-title">Carrosséis</div>
+            {filtered.length > 0 && (
+              <button 
+                className="btn btn-outline btn-sm"
+                onClick={handleSelectAll}
+                style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}
+              >
+                {isAllSelected ? 'Desmarcar Todos' : 'Selecionar Todos'}
+              </button>
+            )}
+            {selectedIds.length > 0 && (
+              <button
+                className="btn-danger btn-sm"
+                onClick={() => setIsBulkDeleteModalOpen(true)}
+                style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                🗑 Excluir Selecionados ({selectedIds.length})
+              </button>
+            )}
+          </div>
           <div className="filter-row">
             {['all', 'rascunho', 'pronto', 'aprovado', 'agendado', 'publicado'].map(status => (
               <button
@@ -141,8 +208,39 @@ export default function Dashboard({
           ) : (
             paginated.map(c => {
               const isExpanded = expandedCards[c.id];
+              const isSelected = selectedIds.includes(c.id);
               return (
-                <div className="carousel-card" key={c.id}>
+                <div className={`carousel-card ${isSelected ? 'selected' : ''}`} key={c.id} style={{ position: 'relative' }}>
+                  {/* Checkbox de seleção em lote */}
+                  <div 
+                    onClick={(e) => e.stopPropagation()} 
+                    style={{ 
+                      position: 'absolute', 
+                      top: '12px', 
+                      left: '12px', 
+                      zIndex: 20, 
+                      background: 'rgba(0, 0, 0, 0.75)', 
+                      borderRadius: '4px', 
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1px solid rgba(255, 255, 255, 0.15)'
+                    }}
+                  >
+                    <input 
+                      type="checkbox" 
+                      checked={isSelected}
+                      onChange={() => handleSelectCard(c.id)}
+                      style={{ 
+                        width: '16px', 
+                        height: '16px', 
+                        cursor: 'pointer',
+                        accentColor: 'var(--gold)'
+                      }}
+                    />
+                  </div>
+
                   <div className="card-header" onClick={() => toggleExpand(c.id)}>
                     {c.slides && c.slides.length > 0 ? (
                       <img src={`/api/carousels/${c.id}/image/${c.slides[0]}`} className="card-thumb" alt="" />
@@ -211,7 +309,7 @@ export default function Dashboard({
                         {c.status === 'publicado' ? '✓ Postado' : '✈ Postar'}
                       </button>
                       <button className="btn btn-outline btn-sm" onClick={() => handleDownloadPptx(c.id)}>PPTX</button>
-                      <button className="btn-danger btn-sm" onClick={() => handleDelete(c.id)}>✕</button>
+                      <button className="btn-danger btn-sm" onClick={() => setDeleteTargetId(c.id)}>✕</button>
                     </div>
                   </div>
                 </div>
@@ -239,6 +337,38 @@ export default function Dashboard({
           </div>
         )}
       </div>
+
+      {/* Modal de Confirmação de Exclusão Individual */}
+      {deleteTargetId && (
+        <div className="form-modal open">
+          <div className="form-box">
+            <h3 className="form-title" style={{ color: 'var(--red, #f43f5e)', fontSize: '16px' }}>Confirmar Exclusão</h3>
+            <p style={{ margin: '14px 0 24px', color: '#e4e4e7', fontSize: '14px', lineHeight: '1.5' }}>
+              Você tem certeza que deseja excluir permanentemente este carrossel? Esta ação não pode ser desfeita e removerá todos os arquivos físicos e registros.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button className="btn btn-outline" onClick={() => setDeleteTargetId(null)}>Cancelar</button>
+              <button className="btn btn-danger" style={{ backgroundColor: 'var(--red, #f43f5e)', border: 'none' }} onClick={confirmDeleteIndividual}>Excluir permanentemente</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão em Lote */}
+      {isBulkDeleteModalOpen && (
+        <div className="form-modal open">
+          <div className="form-box">
+            <h3 className="form-title" style={{ color: 'var(--red, #f43f5e)', fontSize: '16px' }}>Confirmar Exclusão em Lote</h3>
+            <p style={{ margin: '14px 0 24px', color: '#e4e4e7', fontSize: '14px', lineHeight: '1.5' }}>
+              Você tem certeza que deseja excluir permanentemente os <strong>{selectedIds.length}</strong> carrosséis selecionados? Esta ação não pode ser desfeita.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button className="btn btn-outline" onClick={() => setIsBulkDeleteModalOpen(false)}>Cancelar</button>
+              <button className="btn btn-danger" style={{ backgroundColor: 'var(--red, #f43f5e)', border: 'none' }} onClick={confirmDeleteBulk}>Excluir permanentemente</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
