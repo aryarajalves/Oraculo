@@ -9,6 +9,7 @@
   position: fixed;
   left: 0; top: 0; bottom: 0;
   z-index: 200;
+  overscroll-behavior: contain;
 }
 
 .sidebar-brand {
@@ -49,6 +50,7 @@
   flex-direction: column;
   gap: 2px;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .nav-item {
