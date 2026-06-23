@@ -93,7 +93,7 @@ export default function Criador({ onStartGeneration, showToast, initialPrompt, c
 
   useEffect(() => {
     if (initialPrompt) {
-      handleSend(initialPrompt);
+      setInput(initialPrompt);
       clearInitialPrompt();
     }
   }, [initialPrompt]);

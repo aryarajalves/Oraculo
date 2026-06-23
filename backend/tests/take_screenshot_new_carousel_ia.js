@@ -48,13 +48,18 @@ async function run() {
     // 5. Clica no botão "Criar"
     console.log('💬 Clicando em "Criar"...');
     await page.click('.form-actions button:has-text("Criar")');
-    await page.waitForTimeout(3000); // Aguarda a troca de aba e envio
+    await page.waitForTimeout(2000); // Aguarda a troca de aba e preenchimento
 
-    // 6. Aguarda a resposta da IA começar a chegar (streaming)
-    console.log('⏳ Aguardando streaming da IA no chat...');
-    await page.waitForTimeout(6000);
+    // Captura o input preenchido no chat sem enviar
+    console.log('📸 Salvando captura do prompt preenchido no input...');
+    await page.screenshot({ path: path.join(ARTIFACT_DIR, 'new_carousel_ia_input_prefilled.png') });
 
-    // Captura a tela do criador (chat) com a resposta
+    // 6. Clica em enviar no chat manualmente
+    console.log('📤 Clicando no botão de Enviar Chat...');
+    await page.click('.criador-send-btn');
+    await page.waitForTimeout(6000); // Aguarda resposta da IA
+
+    // Captura a tela do criador (chat) com a resposta da IA
     console.log('📸 Salvando captura da resposta no chat...');
     await page.screenshot({ path: path.join(ARTIFACT_DIR, 'new_carousel_ia_chat_response.png') });
 
