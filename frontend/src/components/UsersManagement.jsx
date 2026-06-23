@@ -26,6 +26,11 @@ export default function UsersManagement({ showToast }) {
   const [deletingUser, setDeletingUser] = useState(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
+  // Estados de Deleção de Convite
+  const [deleteInviteModalOpen, setDeleteInviteModalOpen] = useState(false);
+  const [deletingInvite, setDeletingInvite] = useState(null);
+  const [deleteInviteSubmitting, setDeleteInviteSubmitting] = useState(false);
+
   useEffect(() => {
     loadData();
   }, [activeSubTab]);
@@ -148,6 +153,26 @@ export default function UsersManagement({ showToast }) {
       showToast('Erro de rede ao excluir usuário.');
     } finally {
       setDeleteSubmitting(false);
+    }
+  };
+
+  // Confirmar Deleção de Convite
+  const handleConfirmDeleteInvite = async () => {
+    if (!deletingInvite) return;
+    setDeleteInviteSubmitting(true);
+    try {
+      const res = await fetch(`/api/users/invitations/${deletingInvite.id}/revoke`, { method: 'POST' });
+      if (res.ok) {
+        showToast('Convite excluído com sucesso.');
+        setDeleteInviteModalOpen(false);
+        loadData();
+      } else {
+        showToast('Erro ao excluir convite.');
+      }
+    } catch (e) {
+      showToast('Erro de rede ao excluir convite.');
+    } finally {
+      setDeleteInviteSubmitting(false);
     }
   };
 
@@ -336,9 +361,7 @@ export default function UsersManagement({ showToast }) {
                           </span>
                         </td>
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                          {inv.status === 'pending' && (
-                            <button className="btn btn-outline btn-sm" onClick={() => handleRevokeInvite(inv.id)}>Revogar</button>
-                          )}
+                          <button className="btn-danger btn-sm" onClick={() => { setDeletingInvite(inv); setDeleteInviteModalOpen(true); }}>Excluir</button>
                         </td>
                       </tr>
                     );
@@ -450,6 +473,24 @@ export default function UsersManagement({ showToast }) {
               <button className="btn btn-outline" onClick={() => setDeleteUserModalOpen(false)}>Cancelar</button>
               <button className="btn btn-danger" style={{ backgroundColor: 'var(--red, #f43f5e)', border: 'none', color: '#ffffff' }} onClick={handleConfirmDelete} disabled={deleteSubmitting}>
                 {deleteSubmitting ? 'Excluindo...' : 'Excluir usuário'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Excluir Convite (Premium Backdrop, sem fechar por clique externo) */}
+      {deleteInviteModalOpen && deletingInvite && (
+        <div className="form-modal open">
+          <div className="form-box">
+            <h3 className="form-title" style={{ color: 'var(--red, #f43f5e)', fontSize: '16px' }}>Excluir Convite permanentemente</h3>
+            <p style={{ margin: '14px 0 24px', color: '#e4e4e7', fontSize: '14px', lineHeight: '1.5' }}>
+              Você tem certeza que deseja excluir o convite <strong>{deletingInvite.id}</strong>? Esta ação invalidará o link permanentemente e removerá o convite do histórico.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button className="btn btn-outline" onClick={() => setDeleteInviteModalOpen(false)}>Cancelar</button>
+              <button className="btn btn-danger" style={{ backgroundColor: 'var(--red, #f43f5e)', border: 'none', color: '#ffffff' }} onClick={handleConfirmDeleteInvite} disabled={deleteInviteSubmitting}>
+                {deleteInviteSubmitting ? 'Excluindo...' : 'Excluir convite'}
               </button>
             </div>
           </div>
