@@ -1,42 +1,57 @@
 import React from 'react';
 
 export default function Sidebar({ activeTab, setActiveTab, onNewCarousel }) {
-  const tabs = [
-    { id: 'carrosseis', label: 'Carrosséis', icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-      </svg>
-    )},
-    { id: 'calendario', label: 'Calendário', icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-      </svg>
-    )},
-    { id: 'reels', label: 'Clonador de Reels', icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
-      </svg>
-    )},
-    { id: 'oraculo', label: 'Oráculo', icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-      </svg>
-    )},
-    { id: 'radar', label: 'Radar', icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="2" x2="12" y2="6"/>
-      </svg>
-    )},
-    { id: 'fabrica', label: 'Fábrica de Vídeos', icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
-      </svg>
-    )},
-    { id: 'criador', label: 'Criador', isCriador: true, icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-      </svg>
-    )}
+  const categories = [
+    {
+      title: 'Criação',
+      items: [
+        { id: 'criador', label: 'Criador', icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+        )},
+        { id: 'carrosseis', label: 'Carrosséis', icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+          </svg>
+        )},
+        { id: 'calendario', label: 'Calendário', icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        )}
+      ]
+    },
+    {
+      title: 'Ferramentas',
+      items: [
+        { id: 'reels', label: 'Clonador de Reels', icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
+          </svg>
+        )},
+        { id: 'fabrica', label: 'Fábrica de Vídeos', icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+          </svg>
+        )}
+      ]
+    },
+    {
+      title: 'Análise',
+      items: [
+        { id: 'oraculo', label: 'Oráculo', icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+          </svg>
+        )},
+        { id: 'radar', label: 'Radar', icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="2" x2="12" y2="6"/>
+          </svg>
+        )}
+      ]
+    }
   ];
 
   return (
@@ -49,17 +64,23 @@ export default function Sidebar({ activeTab, setActiveTab, onNewCarousel }) {
         </div>
       </div>
       <nav className="sidebar-nav">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            className={`nav-item ${tab.isCriador ? 'nav-item--criador' : ''} ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
+        {categories.map(cat => (
+          <React.Fragment key={cat.title}>
+            <div className="sidebar-category-title">{cat.title}</div>
+            {cat.items.map(tab => (
+              <button
+                key={tab.id}
+                className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </React.Fragment>
         ))}
-        <div className="sidebar-divider"></div>
+        
+        <div className="sidebar-category-title">Painel</div>
         <button
           className={`nav-item ${activeTab === 'configuracoes' ? 'active' : ''}`}
           onClick={() => setActiveTab('configuracoes')}

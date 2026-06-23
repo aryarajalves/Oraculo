@@ -92,6 +92,17 @@
   border-top: 1px solid var(--border);
 }
 
+.sidebar-category-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  margin-top: 14px;
+  margin-bottom: 6px;
+  padding-left: 12px;
+}
+
 .btn-sidebar-action {
   display: flex;
   align-items: center;
