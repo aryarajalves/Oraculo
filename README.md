@@ -1,14 +1,14 @@
-# Oráculo — Dashboard de Produção & IA (Fonte Oculta)
+# Oráculo — Dashboard de Produção & IA
 
-O **Oráculo — Manager** é a plataforma central de inteligência e automação para o perfil do Instagram **@afonteoculta**. Ele combina um frontend modular em **React + Vite** com um ecossistema robusto em **Node.js (Express)** e **agentes automatizados em Python** para gerar, agendar, otimizar e analisar conteúdos de alta performance de forma semiautomática.
+O **Oráculo — Manager** é a plataforma central de inteligência e automação para o seu perfil do Instagram. Ele combina um frontend modular em **React + Vite** com um ecossistema robusto em **Node.js (Express)** e **agentes automatizados em Python** para gerar, agendar, otimizar e analisar conteúdos de alta performance de forma semiautomática.
 
 ---
 
 ## 🔮 Funcionalidades Principais
 
-* **Criador de Carrosséis (IA Chat):** Chat integrado que utiliza modelos de linguagem avançados (Gemini/GPT) adaptados com o "Método Jordânico" e a "Voz Oculta" para redigir roteiros completos de 10 slides e iniciar o pipeline automatizado de geração de imagens.
+* **Criador de Carrosséis (IA Chat):** Chat integrado que utiliza modelos de linguagem avançados (Gemini/GPT) adaptados com o tom de voz editorial e regras da sua marca para redigir roteiros completos de 10 slides e iniciar o pipeline automatizado de geração de imagens.
 * **Dashboard & Galeria Premium:** Grade de gerenciamento de posts contendo status interativos (*Rascunho*, *Pronto*, *Aprovado*, *Publicado*), controle de custos (USD) de geração de imagens, exportação direta em formato PowerPoint (`.pptx`) e postagem instantânea no Instagram.
-* **Clonador de Reels (Engenharia Reversa):** Ferramenta que baixa vídeos do Instagram/TikTok, faz transcrição de áudio, analisa padrões psicológicos e ganchos de retenção e reescreve o roteiro sob a identidade da Fonte Oculta.
+* **Clonador de Reels (Engenharia Reversa):** Ferramenta que baixa vídeos do Instagram/TikTok, faz transcrição de áudio, analisa padrões psicológicos e ganchos de retenção e reescreve o roteiro sob a identidade da sua marca.
 * **Calendário de Agendamento:** Linha do tempo visual mensal e diária para organizar a fila de postagens aprovadas nos horários nobres de publicação (09h, 13h, 20h).
 * **Fábrica de Vídeos:** Pipeline integrado para produzir narrações misteriosas com ElevenLabs e sincronizar com geradores de vídeo de Dark Fantasy (Seedance / Kling / Sora).
 * **Radar de Descobertas:** Integração com scrapers do Apify para buscar pesquisas científicas inusitadas, fatos bizarros e teses ocultas para servir de base para novos carrosséis.
