@@ -14,7 +14,13 @@ import EditSlideModal from './components/EditSlideModal';
 import LiveGenPanel from './components/LiveGenPanel';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('carrosseis');
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('activeTab') || 'carrosseis';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
   const [allCarousels, setAllCarousels] = useState([]);
   const [stats, setStats] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
