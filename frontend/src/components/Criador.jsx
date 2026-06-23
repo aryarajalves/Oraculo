@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-export default function Criador({ onStartGeneration, showToast }) {
+export default function Criador({ onStartGeneration, showToast, initialPrompt, clearInitialPrompt }) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [generating, setGenerating] = useState(false);
@@ -90,6 +90,13 @@ export default function Criador({ onStartGeneration, showToast }) {
       setGenerating(false);
     }
   };
+
+  useEffect(() => {
+    if (initialPrompt) {
+      handleSend(initialPrompt);
+      clearInitialPrompt();
+    }
+  }, [initialPrompt]);
 
   const handleSaveDraft = async (text) => {
     try {

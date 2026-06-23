@@ -30,6 +30,22 @@ export default function App() {
   const [allCarousels, setAllCarousels] = useState([]);
   const [stats, setStats] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [initialChatPrompt, setInitialChatPrompt] = useState('');
+
+  const handleSendToChat = (formData) => {
+    const { title, theme, format, dir, caption, notes } = formData;
+    const formattedPrompt = `Dado o seguinte briefing para criação de um carrossel, avalie a ideia, o gancho/título, o formato e o tema escolhido. Sugira melhorias na estrutura, no gancho e me dê ideias de como estruturar os slides e escrever a legenda (caption) perfeita para maximizar o engajamento:
+
+- **Título / Gancho:** ${title || 'Não definido'}
+- **Tema:** ${theme || 'Não definido'}
+- **Formato:** ${format || 'Não definido'}
+- **Pasta das artes:** ${dir || 'Não definido'}
+- **Legenda (Caption):** ${caption || 'Não definido'}
+- **Notas internas:** ${notes || 'Não definido'}`;
+
+    setInitialChatPrompt(formattedPrompt);
+    setActiveTab('criador');
+  };
 
   // Modais
   const [newModalOpen, setNewModalOpen] = useState(false);
@@ -370,7 +386,14 @@ export default function App() {
         {activeTab === 'oraculo' && <Oraculo showToast={showToast} />}
         {activeTab === 'radar' && <Radar showToast={showToast} />}
         {activeTab === 'fabrica' && <VideoFactory />}
-        {activeTab === 'criador' && <Criador onStartGeneration={handleStartGeneration} showToast={showToast} />}
+        {activeTab === 'criador' && (
+          <Criador
+            onStartGeneration={handleStartGeneration}
+            showToast={showToast}
+            initialPrompt={initialChatPrompt}
+            clearInitialPrompt={() => setInitialChatPrompt('')}
+          />
+        )}
         {activeTab === 'configuracoes' && <Settings showToast={showToast} onLoadBranding={loadBranding} />}
         {activeTab === 'users' && <UsersManagement showToast={showToast} />}
       </div>
@@ -393,6 +416,7 @@ export default function App() {
         isOpen={newModalOpen}
         onClose={() => setNewModalOpen(false)}
         onCreate={handleCreateCarousel}
+        onSendToChat={handleSendToChat}
         defaults={newModalDefaults}
       />
 

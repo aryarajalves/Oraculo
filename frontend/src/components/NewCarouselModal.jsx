@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function NewCarouselModal({ isOpen, onClose, onCreate }) {
+export default function NewCarouselModal({ isOpen, onClose, onCreate, onSendToChat }) {
   const [title, setTitle] = useState('');
   const [theme, setTheme] = useState('');
   const [format, setFormat] = useState('A');
@@ -12,6 +12,13 @@ export default function NewCarouselModal({ isOpen, onClose, onCreate }) {
 
   const handleSubmit = () => {
     onCreate({ title, theme, format, dir, caption, notes });
+    onClose();
+  };
+
+  const handleSendToChat = () => {
+    if (onSendToChat) {
+      onSendToChat({ title, theme, format, dir, caption, notes });
+    }
     onClose();
   };
 
@@ -48,9 +55,10 @@ export default function NewCarouselModal({ isOpen, onClose, onCreate }) {
           <label className="form-label">Notas internas</label>
           <textarea className="form-textarea" placeholder="Observações, modelo usado, bolha A/B..." value={notes} onChange={e => setNotes(e.target.value)}></textarea>
         </div>
-        <div className="form-actions">
+        <div className="form-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
           <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-gold" onClick={handleSubmit}>Criar Carrossel</button>
+          <button className="btn btn-outline" style={{ borderColor: 'var(--gold)', color: 'var(--gold)' }} onClick={handleSendToChat}>Enviar para o Chat (IA)</button>
+          <button className="btn btn-gold" onClick={handleSubmit}>Criar Direto</button>
         </div>
       </div>
     </div>
