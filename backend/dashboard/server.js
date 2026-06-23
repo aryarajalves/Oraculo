@@ -828,6 +828,22 @@ app.post('/api/settings/keys', (req, res) => {
 
 // ── API: Prompts dos Agentes ──────────────────────────────────────────────────
 const AGENTS_DIR = path.join(__dirname, "..", "agents");
+const NAMES_FILE = path.join(AGENTS_DIR, "display_names.json");
+
+function readDisplayNames() {
+  try {
+    if (fs.existsSync(NAMES_FILE)) {
+      return JSON.parse(fs.readFileSync(NAMES_FILE, 'utf-8'));
+    }
+  } catch (e) {}
+  return {};
+}
+
+function writeDisplayNames(data) {
+  try {
+    fs.writeFileSync(NAMES_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (e) {}
+}
 
 app.get('/api/settings/prompts', (req, res) => {
   try {
@@ -835,19 +851,23 @@ app.get('/api/settings/prompts', (req, res) => {
       return res.json({ prompts: [] });
     }
     const files = fs.readdirSync(AGENTS_DIR);
+    const displayNames = readDisplayNames();
     const prompts = files
       .filter(f => f.endsWith('.md'))
       .map(f => {
         const id = f.replace('.md', '');
         const content = fs.readFileSync(path.join(AGENTS_DIR, f), 'utf-8');
-        const name = id
-          .split('-')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ')
-          .replace('Haucacau', 'HauCacau')
-          .replace('V2', 'V2')
-          .replace('Dna', 'DNA')
-          .replace('Cta', 'CTA');
+        let name = displayNames[id];
+        if (!name) {
+          name = id
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ')
+            .replace('Haucacau', 'HauCacau')
+            .replace('V2', 'V2')
+            .replace('Dna', 'DNA')
+            .replace('Cta', 'CTA');
+        }
         return { id, name, content };
       });
     res.json({ prompts });
@@ -865,6 +885,21 @@ app.post('/api/settings/prompts', (req, res) => {
   const filePath = path.join(AGENTS_DIR, `${safeId}.md`);
   try {
     fs.writeFileSync(filePath, content, 'utf-8');
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/settings/prompts/rename', (req, res) => {
+  const { id, name } = req.body;
+  if (!id || !name) {
+    return res.status(400).json({ error: 'Parâmetros inválidos. Forneça id e name.' });
+  }
+  try {
+    const displayNames = readDisplayNames();
+    displayNames[id] = name;
+    writeDisplayNames(displayNames);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
