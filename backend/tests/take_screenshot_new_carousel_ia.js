@@ -45,9 +45,9 @@ async function run() {
     console.log('📸 Salvando captura do modal preenchido...');
     await page.screenshot({ path: path.join(ARTIFACT_DIR, 'new_carousel_modal_ia_btn.png') });
 
-    // 5. Clica no botão "Enviar para o Chat (IA)"
-    console.log('💬 Clicando em "Enviar para o Chat (IA)"...');
-    await page.click('button:has-text("Enviar para o Chat (IA)")');
+    // 5. Clica no botão "Criar"
+    console.log('💬 Clicando em "Criar"...');
+    await page.click('.form-actions button:has-text("Criar")');
     await page.waitForTimeout(3000); // Aguarda a troca de aba e envio
 
     // 6. Aguarda a resposta da IA começar a chegar (streaming)

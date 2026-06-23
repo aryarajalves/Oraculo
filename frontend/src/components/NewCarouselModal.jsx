@@ -57,8 +57,7 @@ export default function NewCarouselModal({ isOpen, onClose, onCreate, onSendToCh
         </div>
         <div className="form-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
           <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-outline" style={{ borderColor: 'var(--gold)', color: 'var(--gold)' }} onClick={handleSendToChat}>Enviar para o Chat (IA)</button>
-          <button className="btn btn-gold" onClick={handleSubmit}>Criar Direto</button>
+          <button className="btn btn-gold" onClick={handleSendToChat}>Criar</button>
         </div>
       </div>
     </div>
