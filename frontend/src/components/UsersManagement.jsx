@@ -31,6 +31,12 @@ export default function UsersManagement({ showToast }) {
   const [deletingInvite, setDeletingInvite] = useState(null);
   const [deleteInviteSubmitting, setDeleteInviteSubmitting] = useState(false);
 
+  // Estados de Paginação
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersPerPage, setUsersPerPage] = useState(5);
+  const [invitesPage, setInvitesPage] = useState(1);
+  const [invitesPerPage, setInvitesPerPage] = useState(5);
+
   useEffect(() => {
     loadData();
   }, [activeSubTab]);
@@ -176,6 +182,14 @@ export default function UsersManagement({ showToast }) {
     }
   };
 
+  // Paginação de Usuários
+  const totalUsersPages = Math.ceil(users.length / usersPerPage) || 1;
+  const paginatedUsers = users.slice((usersPage - 1) * usersPerPage, usersPage * usersPerPage);
+
+  // Paginação de Convites
+  const totalInvitesPages = Math.ceil(invitations.length / invitesPerPage) || 1;
+  const paginatedInvitations = invitations.slice((invitesPage - 1) * invitesPerPage, invitesPage * invitesPerPage);
+
   return (
     <div>
       <div className="oraculo-header">
@@ -247,7 +261,7 @@ export default function UsersManagement({ showToast }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map(u => (
+                  {paginatedUsers.map(u => (
                     <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', color: 'var(--text-2)' }}>
                       <td style={{ padding: '14px 16px', fontWeight: '500', color: 'var(--text)' }}>
                         {u.name}
@@ -283,6 +297,67 @@ export default function UsersManagement({ showToast }) {
                   ))}
                 </tbody>
               </table>
+
+              {/* Paginação de Usuários */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-2)' }}>
+                  <span>Mostrar</span>
+                  <select
+                    value={usersPerPage}
+                    onChange={(e) => {
+                      setUsersPerPage(Number(e.target.value));
+                      setUsersPage(1);
+                    }}
+                    style={{
+                      background: 'var(--surface2)',
+                      border: '1px solid var(--border2)',
+                      color: 'var(--text-2)',
+                      padding: '4px 8px',
+                      borderRadius: '5px',
+                      fontSize: '12px',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                  <span>por página</span>
+                </div>
+                
+                <div className="pagination-controls" style={{ display: 'flex', gap: '5px' }}>
+                  <button
+                    className="page-btn"
+                    disabled={usersPage === 1}
+                    onClick={() => setUsersPage(usersPage - 1)}
+                  >
+                    Anterior
+                  </button>
+                  {Array.from({ length: totalUsersPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      className={`page-btn ${usersPage === p ? 'active' : ''}`}
+                      onClick={() => setUsersPage(p)}
+                      style={{
+                        backgroundColor: usersPage === p ? 'var(--gold, #C9A84C)' : '',
+                        borderColor: usersPage === p ? 'var(--gold, #C9A84C)' : '',
+                        color: usersPage === p ? '#000' : ''
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    className="page-btn"
+                    disabled={usersPage === totalUsersPages}
+                    onClick={() => setUsersPage(usersPage + 1)}
+                  >
+                    Próximo
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -319,7 +394,7 @@ export default function UsersManagement({ showToast }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {invitations.map(inv => {
+                  {paginatedInvitations.map(inv => {
                     const inviteUrl = `${window.location.protocol}//${window.location.host}/register.html?invite=${inv.id}`;
                     return (
                       <tr key={inv.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', color: 'var(--text-2)' }}>
@@ -368,6 +443,67 @@ export default function UsersManagement({ showToast }) {
                   })}
                 </tbody>
               </table>
+
+              {/* Paginação de Convites */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-2)' }}>
+                  <span>Mostrar</span>
+                  <select
+                    value={invitesPerPage}
+                    onChange={(e) => {
+                      setInvitesPerPage(Number(e.target.value));
+                      setInvitesPage(1);
+                    }}
+                    style={{
+                      background: 'var(--surface2)',
+                      border: '1px solid var(--border2)',
+                      color: 'var(--text-2)',
+                      padding: '4px 8px',
+                      borderRadius: '5px',
+                      fontSize: '12px',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                  <span>por página</span>
+                </div>
+                
+                <div className="pagination-controls" style={{ display: 'flex', gap: '5px' }}>
+                  <button
+                    className="page-btn"
+                    disabled={invitesPage === 1}
+                    onClick={() => setInvitesPage(invitesPage - 1)}
+                  >
+                    Anterior
+                  </button>
+                  {Array.from({ length: totalInvitesPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      className={`page-btn ${invitesPage === p ? 'active' : ''}`}
+                      onClick={() => setInvitesPage(p)}
+                      style={{
+                        backgroundColor: invitesPage === p ? 'var(--gold, #C9A84C)' : '',
+                        borderColor: invitesPage === p ? 'var(--gold, #C9A84C)' : '',
+                        color: invitesPage === p ? '#000' : ''
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    className="page-btn"
+                    disabled={invitesPage === totalInvitesPages}
+                    onClick={() => setInvitesPage(invitesPage + 1)}
+                  >
+                    Próximo
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
