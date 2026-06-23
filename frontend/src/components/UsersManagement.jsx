@@ -448,7 +448,7 @@ export default function UsersManagement({ showToast }) {
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <button className="btn btn-outline" onClick={() => setDeleteUserModalOpen(false)}>Cancelar</button>
-              <button className="btn btn-danger" style={{ backgroundColor: 'var(--red, #f43f5e)', border: 'none' }} onClick={handleConfirmDelete} disabled={deleteSubmitting}>
+              <button className="btn btn-danger" style={{ backgroundColor: 'var(--red, #f43f5e)', border: 'none', color: '#ffffff' }} onClick={handleConfirmDelete} disabled={deleteSubmitting}>
                 {deleteSubmitting ? 'Excluindo...' : 'Excluir usuário'}
               </button>
             </div>
