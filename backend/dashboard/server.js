@@ -7,6 +7,7 @@ import os from "os";
 import { fileURLToPath } from "url";
 import { execFile, spawn } from "child_process";
 import { promisify } from "util";
+import { query, initDb } from "./db.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -133,21 +134,92 @@ app.post("/api/events/broadcast", (req, res) => {
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-function readData() {
+function mapCarouselFromDb(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    theme: row.theme,
+    praca: row.praca,
+    format: row.format,
+    preset: row.preset,
+    status: row.status,
+    createdAt: row.created_at,
+    slidesDir: row.slides_dir,
+    slidePrefix: row.slide_prefix,
+    totalSlides: row.total_slides,
+    caption: row.caption,
+    notes: row.notes,
+    slides: typeof row.slides === 'string' ? JSON.parse(row.slides) : (row.slides || [])
+  };
+}
+
+async function readData() {
   try {
-    const raw = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-    // carousels.json pode ser array [] ou objeto {"0":{...},"1":{...},...}
-    return Array.isArray(raw) ? raw : Object.values(raw);
-  } catch {
+    const res = await query("SELECT * FROM carousels ORDER BY id ASC");
+    return res.rows.map(mapCarouselFromDb);
+  } catch (err) {
+    console.error("Erro ao ler carrosséis do banco:", err);
     return [];
   }
 }
 
-function writeData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+async function writeData(data) {
+  try {
+    await query("BEGIN");
+    const currentIds = data.map(c => c.id).filter(Boolean);
+    if (currentIds.length > 0) {
+      await query("DELETE FROM carousels WHERE id NOT IN (" + currentIds.map((_, i) => `$${i + 1}`).join(",") + ")", currentIds);
+    } else {
+      await query("DELETE FROM carousels");
+    }
+
+    for (const c of data) {
+      const upsertQuery = `
+        INSERT INTO carousels (
+          id, title, theme, praca, format, preset, status, created_at,
+          slides_dir, slide_prefix, total_slides, caption, notes, slides
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          theme = EXCLUDED.theme,
+          praca = EXCLUDED.praca,
+          format = EXCLUDED.format,
+          preset = EXCLUDED.preset,
+          status = EXCLUDED.status,
+          created_at = EXCLUDED.created_at,
+          slides_dir = EXCLUDED.slides_dir,
+          slide_prefix = EXCLUDED.slide_prefix,
+          total_slides = EXCLUDED.total_slides,
+          caption = EXCLUDED.caption,
+          notes = EXCLUDED.notes,
+          slides = EXCLUDED.slides
+      `;
+      const params = [
+        c.id,
+        c.title || '',
+        c.theme || '',
+        c.praca || '',
+        c.format || '',
+        c.preset || '',
+        c.status || '',
+        c.createdAt || '',
+        c.slidesDir || '',
+        c.slidePrefix || '',
+        c.totalSlides || 0,
+        c.caption || '',
+        c.notes || '',
+        JSON.stringify(c.slides || [])
+      ];
+      await query(upsertQuery, params);
+    }
+    await query("COMMIT");
+  } catch (err) {
+    await query("ROLLBACK");
+    console.error("Erro ao salvar carrosséis no banco:", err);
+    throw err;
+  }
 }
 
-// Versões async que usam B2 em produção
 async function readDataAsync() {
   if (IS_PROD && b2) return b2.readDataFromB2();
   return readData();
@@ -158,7 +230,7 @@ async function writeDataAsync(data) {
     await b2.writeDataToB2(data);
     return;
   }
-  writeData(data);
+  await writeData(data);
 }
 
 function getLocalSlidesDir(c) {
@@ -170,22 +242,47 @@ function getLocalSlidesDir(c) {
 }
 
 function getSlidesForCarousel(c) {
-  // Em produção, slides já vêm preenchidos no JSON do B2
   if (IS_PROD && c.slides && c.slides.length > 0) return c.slides;
-  // Local: escaneia o diretório
   return getSlidesFromDir(getLocalSlidesDir(c), c.slidePrefix).map(s => s.filename);
 }
 
-function readReelsHistory() {
+async function readReelsHistory() {
   try {
-    return JSON.parse(fs.readFileSync(REELS_HISTORY_FILE, "utf-8"));
-  } catch {
+    const res = await query("SELECT * FROM reels_history ORDER BY id DESC");
+    return res.rows;
+  } catch (err) {
+    console.error("Erro ao ler reels do banco:", err);
     return [];
   }
 }
 
-function writeReelsHistory(data) {
-  fs.writeFileSync(REELS_HISTORY_FILE, JSON.stringify(data, null, 2));
+async function writeReelsHistory(data) {
+  try {
+    await query("BEGIN");
+    await query("DELETE FROM reels_history");
+    for (const r of data) {
+      const insQuery = `
+        INSERT INTO reels_history (
+          gancho_original, padrao_psicologico, roteiro_fonte_oculta,
+          transcricao_original, url, timestamp
+        ) VALUES ($1, $2, $3, $4, $5, $6)
+      `;
+      const params = [
+        r.gancho_original || '',
+        r.padrao_psicologico || '',
+        r.roteiro_fonte_oculta || '',
+        r.transcricao_original || '',
+        r.url || '',
+        r.timestamp || ''
+      ];
+      await query(insQuery, params);
+    }
+    await query("COMMIT");
+  } catch (err) {
+    await query("ROLLBACK");
+    console.error("Erro ao salvar reels no banco:", err);
+    throw err;
+  }
 }
 
 function getSlidesFromDir(dir, prefix = "slide-") {
@@ -220,8 +317,8 @@ app.get("/api/carousels/:id", async (req, res) => {
 });
 
 // ── API: Create carousel ─────────────────────────────────────────────────────
-app.post("/api/carousels", (req, res) => {
-  const all = readData();
+app.post("/api/carousels", async (req, res) => {
+  const all = await readData();
   const newCarousel = {
     id: `carrossel-${String(all.length + 1).padStart(2, "0")}`,
     title: req.body.title || "Sem título",
@@ -236,7 +333,7 @@ app.post("/api/carousels", (req, res) => {
     notes: req.body.notes || "",
   };
   all.push(newCarousel);
-  writeData(all);
+  await writeData(all);
 
   // Create folder if requested
   if (req.body.createFolder && req.body.slidesDir) {
@@ -247,20 +344,20 @@ app.post("/api/carousels", (req, res) => {
 });
 
 // ── API: Update carousel status/fields ──────────────────────────────────────
-app.put("/api/carousels/:id", (req, res) => {
-  const all = readData();
+app.put("/api/carousels/:id", async (req, res) => {
+  const all = await readData();
   const idx = all.findIndex(x => x.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Não encontrado" });
   all[idx] = { ...all[idx], ...req.body, id: all[idx].id };
-  writeData(all);
+  await writeData(all);
   res.json(all[idx]);
 });
 
 // ── API: Delete carousel ─────────────────────────────────────────────────────
-app.delete("/api/carousels/:id", (req, res) => {
-  const all = readData();
+app.delete("/api/carousels/:id", async (req, res) => {
+  const all = await readData();
   const filtered = all.filter(x => x.id !== req.params.id);
-  writeData(filtered);
+  await writeData(filtered);
   res.json({ ok: true });
 });
 
@@ -272,7 +369,7 @@ app.get("/api/carousels/:id/image/:filename", async (req, res) => {
     return res.redirect(302, url);
   }
   // Local: serve do disco
-  const all = readData();
+  const all = await readData();
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).send("Carrossel não encontrado");
   const imgPath = path.join(getLocalSlidesDir(c), req.params.filename);
@@ -286,7 +383,7 @@ app.get("/api/carousels/:id/download/:filename", async (req, res) => {
     const url = b2.b2ImageUrl(req.params.id, req.params.filename);
     return res.redirect(302, url);
   }
-  const all = readData();
+  const all = await readData();
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).send("Não encontrado");
   const imgPath = path.join(getLocalSlidesDir(c), req.params.filename);
@@ -296,8 +393,8 @@ app.get("/api/carousels/:id/download/:filename", async (req, res) => {
 });
 
 // ── API: Read slide meta (title/body/layout stored alongside the image) ───────
-app.get("/api/carousels/:id/slide/:filename/meta", (req, res) => {
-  const all = readData();
+app.get("/api/carousels/:id/slide/:filename/meta", async (req, res) => {
+  const all = await readData();
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Não encontrado" });
   const metaPath = path.join(getLocalSlidesDir(c), req.params.filename.replace(/\.(jpg|jpeg|png)$/i, ".meta.json"));
@@ -311,7 +408,7 @@ app.get("/api/carousels/:id/slide/:filename/meta", (req, res) => {
 
 // ── API: Recompose slide with new text (keeps original image) ────────────────
 app.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => {
-  const all = readData();
+  const all = await readData();
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Não encontrado" });
   const imgPath = path.join(getLocalSlidesDir(c), req.params.filename);
@@ -336,8 +433,8 @@ app.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => {
 });
 
 // ── API: Excluir carrossel inteiro ─────────────────────────────────────────────
-app.delete("/api/carousels/:id", (req, res) => {
-  let all = readData();
+app.delete("/api/carousels/:id", async (req, res) => {
+  let all = await readData();
   const index = all.findIndex(x => x.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: "Não encontrado" });
   
@@ -354,13 +451,13 @@ app.delete("/api/carousels/:id", (req, res) => {
   }
 
   all.splice(index, 1);
-  saveData(all);
+  await writeData(all);
   res.json({ ok: true, message: "Carrossel apagado com sucesso" });
 });
 
 // ── API: Excluir slide individual ─────────────────────────────────────────────
-app.delete("/api/carousels/:id/slide/:filename", (req, res) => {
-  const all = readData();
+app.delete("/api/carousels/:id/slide/:filename", async (req, res) => {
+  const all = await readData();
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Carrossel não encontrado" });
   
@@ -379,7 +476,7 @@ app.delete("/api/carousels/:id/slide/:filename", (req, res) => {
 
 // ── API: Regenerate image via Gemini + recompose ─────────────────────────────
 app.post("/api/carousels/:id/slide/:filename/regen", async (req, res) => {
-  const all = readData();
+  const all = await readData();
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Não encontrado" });
   const imgPath = path.join(getLocalSlidesDir(c), req.params.filename);
@@ -401,7 +498,7 @@ app.post("/api/carousels/:id/slide/:filename/regen", async (req, res) => {
 
 // ── API: Download ZIP — carrossel individual ─────────────────────────────────
 app.get("/api/carousels/:id/download-zip", async (req, res) => {
-  const all = readData();
+  const all = await readData();
   const c   = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Carrossel não encontrado" });
 
@@ -433,7 +530,7 @@ app.get("/api/carousels/:id/download-zip", async (req, res) => {
 
 // ── API: Download ZIP — TODOS os carrosséis ──────────────────────────────────
 app.get("/api/download-all", async (req, res) => {
-  const all  = readData();
+  const all  = await readData();
   const payload = all.map(c => {
     const slides = getSlidesFromDir(getLocalSlidesDir(c), c.slidePrefix);
     return { ...c, slides: slides.map(s => s.filename) };
@@ -467,7 +564,7 @@ app.get("/api/download-all", async (req, res) => {
 
 // ── API: Publicar no Instagram via script Python ──────────────────────────────
 app.post("/api/carousels/:id/publish-instagram", async (req, res) => {
-  const all = readData();
+  const all = await readData();
   const c   = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Carrossel não encontrado" });
 
@@ -493,7 +590,7 @@ app.post("/api/carousels/:id/publish-instagram", async (req, res) => {
     if (stderr) console.error("publish-instagram stderr:", stderr.trim());
 
     // Recarrega dados atualizados
-    const updated = readData().find(x => x.id === req.params.id);
+    const updated = (await readData()).find(x => x.id === req.params.id);
     res.json({ ok: true, log: stdout, carousel: updated });
   } catch (e) {
     console.error("publish-instagram error:", e.message);
@@ -511,7 +608,7 @@ app.post("/api/oraculo/update", async (req, res) => {
   try {
     const { stdout, stderr } = await execFileAsync("python", args, { timeout: 60000 });
     console.log("oraculo:", stdout.trim());
-    const all = readData();
+    const all = await readData();
     res.json({ ok: true, log: stdout, carousels: all });
   } catch (e) {
     console.error("oraculo error:", e.message);
@@ -519,8 +616,8 @@ app.post("/api/oraculo/update", async (req, res) => {
   }
 });
 
-app.get("/api/oraculo", (req, res) => {
-  const all = readData();
+app.get("/api/oraculo", async (req, res) => {
+  const all = await readData();
   const withMetrics = all
     .filter(c => c.metrics)
     .map(c => ({
@@ -612,14 +709,14 @@ app.post("/api/haucacau/gerar", (req, res) => {
 });
 
 // ── API: HauCacau — Listar carrosséis ────────────────────────────────────────
-app.get("/api/haucacau/carousels", (req, res) => {
-  const all = readData();
+app.get("/api/haucacau/carousels", async (req, res) => {
+  const all = await readData();
   res.json(all.filter(c => c.projeto === "haucacau"));
 });
 
 // ── API: Stats ───────────────────────────────────────────────────────────────
-app.get("/api/stats", (req, res) => {
-  const all = readData();
+app.get("/api/stats", async (req, res) => {
+  const all = await readData();
   const statusCount = {};
   let totalSlides = 0;
   let totalCost = 0;
@@ -797,24 +894,24 @@ app.get("/api/reels/analyze", (req, res) => {
     res.write(`data: ${JSON.stringify({ type: "log", message: data.toString() })}\n\n`);
   });
 
-  child.on("close", (code) => {
+  child.on("close", async (code) => {
     if (finalResult && !finalResult.error) {
-      const history = readReelsHistory();
+      const history = await readReelsHistory();
       history.unshift({
         ...finalResult,
         url: url,
         timestamp: new Date().toISOString()
       });
       // Mantém os últimos 50 registros
-      writeReelsHistory(history.slice(0, 50));
+      await writeReelsHistory(history.slice(0, 50));
     }
     res.write(`data: ${JSON.stringify({ type: "done", result: finalResult })}\n\n`);
     res.end();
   });
 });
 
-app.get("/api/reels/history", (req, res) => {
-  res.json(readReelsHistory());
+app.get("/api/reels/history", async (req, res) => {
+  res.json(await readReelsHistory());
 });
 
 // ── API: Download de Reel (yt-dlp) ───────────────────────────────────────────
@@ -891,12 +988,12 @@ app.get("/api/video/generate", (req, res) => {
   });
 });
 
-app.delete("/api/reels/history/:index", (req, res) => {
-  const history = readReelsHistory();
+app.delete("/api/reels/history/:index", async (req, res) => {
+  const history = await readReelsHistory();
   const idx = parseInt(req.params.index);
   if (isNaN(idx) || idx < 0 || idx >= history.length) return res.status(400).json({ error: "Invalid index" });
   history.splice(idx, 1);
-  writeReelsHistory(history);
+  await writeReelsHistory(history);
   res.json({ ok: true });
 });
 
@@ -1493,6 +1590,11 @@ app.post('/api/criador/stream', async (req, res) => {
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\nFonte Oculta Dashboard rodando em: http://localhost:${PORT}\n`);
+initDb().then(() => {
+  app.listen(PORT, () => {
+    console.log(`\nFonte Oculta Dashboard rodando em: http://localhost:${PORT}\n`);
+  });
+}).catch(err => {
+  console.error("❌ Falha crítica ao inicializar banco de dados:", err);
+  process.exit(1);
 });
