@@ -1,0 +1,60 @@
+# Dependências
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ambiente — NUNCA commitar
+.env
+
+# Gerados / mídia (muito pesados para git)
+carousels/
+drive_staging/
+upload_temp/
+preview/
+logs/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.mp4
+*.zip
+
+# Fontes baixadas em runtime (geradas pelo fonts.py no Linux)
+.fonts/
+
+# Pacotes Python instalados no Render (via pip --target)
+python_packages/
+
+# Ferramentas locais
+.gitnexus
+presentation/proof-imgs/
+
+# Worktrees do Claude Code (repos embutidos)
+.claude/worktrees/
+claude-video-vision/
+
+# Python dist-info (pacotes instalados localmente)
+*.dist-info/
+bin/
+annotated_types/
+anyio/
+certifi/
+colorama/
+distro/
+h11/
+httpcore/
+httpx/
+idna/
+jiter/
+openai/
+pydantic/
+pydantic_core/
+sniffio/
+tqdm/
+typing_extensions.py
+typing_inspection/
+
+# Astrology third-party library
+kerykeion/

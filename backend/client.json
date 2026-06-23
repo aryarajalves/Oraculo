@@ -1,0 +1,237 @@
+{
+  "_comment": "Camada narrativa da plataforma. Todos os agentes leem daqui. Para replicar para outro cliente: duplique este arquivo, preencha os campos e aponte o servidor para ele.",
+
+  "meta": {
+    "clientId": "fonte-oculta",
+    "clientName": "Fonte Oculta",
+    "handle": "@afonteoculta",
+    "creator": "Jordão",
+    "language": "pt-BR",
+    "version": "1.0.0",
+    "createdAt": "2026-05-24"
+  },
+
+  "brand": {
+    "niche": [
+      "espiritualidade",
+      "epigenética",
+      "frequência",
+      "traumas",
+      "dinheiro",
+      "consciência"
+    ],
+    "product": "Tecnologia Sonora / Desbloqueio Neural",
+    "cta_keyword": "FONTE",
+    "enemy": "Sistema educacional / indústria da autoajuda / sistema financeiro / herança epigenética",
+
+    "avatar": {
+      "dor_atual": "Preso em padrão que não quebra. Já tentou autoajuda, afirmações, terapia.",
+      "desejo_profundo": "Sentir que existe algo mais — e que o problema não é ele.",
+      "crenca_falsa": "O problema é meu — falta de disciplina, de fé, de esforço.",
+      "verdade_oculta": "Sistema nervoso calibrado antes dos 7 anos em frequência de escassez/bloqueio.",
+      "frustracoes": [
+        "Autoajuda que não dura",
+        "Afirmações que não funcionam",
+        "Terapia que explica mas não muda"
+      ],
+      "raiva_disponivel": [
+        "Sistema educacional que nunca ensinou sobre dinheiro",
+        "Indústria da autoajuda que vende o que não entrega",
+        "Herança epigenética silenciada por gerações"
+      ]
+    }
+  },
+
+  "voice": {
+    "tone": ["sombrio", "revelador", "hipnótico"],
+    "density": "denso, adulto, específico",
+    "description": "Não é animação. Não é urgência. É a calma de quem já viu o que está por trás — e fala com quem sempre suspeitou que existia.",
+
+    "vocabulary": {
+      "allowed": [
+        "campo", "frequência", "transmitir", "irradiar", "calibrado",
+        "véu", "suprimido", "gravado", "invocado", "arquitetura invisível",
+        "o que foi silenciado", "o que já estava lá"
+      ],
+      "forbidden": [
+        "estudos mostram",
+        "a verdade é que",
+        "o que ninguém te contou",
+        "você precisa ver isso",
+        "você deveria saber"
+      ],
+      "forbidden_structures": [
+        "Não é acidente. É arquitetura.",
+        "Não é X. É Y. (repetido mais de 2x)",
+        "Ademais",
+        "Nesse sentido",
+        "E aconteceu antes de..."
+      ]
+    },
+
+    "narration": {
+      "voice_ref": "Roger",
+      "voice_provider": "ElevenLabs",
+      "voice_qualities": "grave, natural, com profundidade",
+      "pause_marker": "│",
+      "emphasis_style": "MAIÚSCULAS",
+      "speed_options": ["lento", "normal", "acelerado"],
+      "tone_options": ["assombrado", "revelador", "íntimo", "urgente", "preditivo"]
+    }
+  },
+
+  "method": {
+    "name": "Método Jordânico",
+    "type": "reel_script",
+    "structure": {
+      "format": "7_falas",
+      "fala_length": "10-15 palavras",
+      "scene_duration_sec": "4-5",
+      "video_total_sec": "30-40",
+      "beats": [
+        { "id": 1, "name": "GANCHO PARADOXAL",  "description": "duas verdades em colisão" },
+        { "id": 2, "name": "VALIDAÇÃO",          "description": "você sempre sentiu isso" },
+        { "id": 3, "name": "NOMEAÇÃO",           "description": "nomeia o sistema responsável" },
+        { "id": 4, "name": "PROFUNDIDADE",       "description": "o mecanismo real, a camada oculta" },
+        { "id": 5, "name": "PROFUNDIDADE 2",     "description": "aprofundamento visceral" },
+        { "id": 6, "name": "ESPELHO",            "description": "o seguidor se reconhece" },
+        { "id": 7, "name": "VIRADA",             "description": "a saída já está dentro de si" }
+      ]
+    }
+  },
+
+  "carousel": {
+    "total_slides": 10,
+    "states": [
+      "DISRUPÇÃO",
+      "DESCIDA",
+      "NOMEAÇÃO",
+      "PROFUNDIDADE",
+      "QUEDA FUNDA",
+      "ESPELHO",
+      "ASCENSÃO",
+      "CRISTALIZAÇÃO",
+      "SETUP CTA",
+      "CTA FIXO"
+    ],
+    "slide_rules": {
+      "s1": { "mode": "image", "layout": "fullbleed", "cover": true },
+      "s4": { "mode": "text" },
+      "s5": { "mode": "text" },
+      "s6": { "mode": "text" },
+      "s10": {
+        "mode": "image",
+        "layout": "fullbleed",
+        "image_concept": "portal dourado puro",
+        "title_fixed": "COMENTE\nFONTE",
+        "body_template": "E eu te envio a {product} capaz de {resultado_pilar} usando o {mechanism}.",
+        "mechanism": "Desbloqueio Neural"
+      }
+    },
+    "presets": {
+      "manuscrito_sagrado":       { "label": "Manuscrito Sagrado",   "palette": "dourado envelhecido" },
+      "cinematografico":          { "label": "Cinematográfico",       "palette": "monocromático dramático" },
+      "cinematografico_crimson":  { "label": "Cinematográfico Crimson","palette": "vermelho-carvão" },
+      "esoterico_minimalista":    { "label": "Esotérico Minimalista", "palette": "bege-ouro mínimo" },
+      "dramatico":                { "label": "Dramático",             "palette": "preto fundo, luz central" },
+      "etereo_luminoso":          { "label": "Etéreo Luminoso",       "palette": "branco-ouro celestial" }
+    },
+    "layouts": ["fullbleed", "dramatico", "etereo", "text_only", "card"],
+    "pracas": ["MENTE", "SISTEMA", "CORPO", "ESPÍRITO", "ALAVANCA"],
+    "formats": ["A", "B", "C", "D"]
+  },
+
+  "visual": {
+    "aesthetic": ["Dark Fantasy", "Cósmico", "Surreal", "Cinematográfico"],
+    "human_figures": "silhueta_apenas_sem_rosto",
+    "forbidden_visuals": [
+      "pessoas trabalhando",
+      "dinheiro caindo",
+      "rostos comuns"
+    ],
+    "preferred_visuals": [
+      "raízes drenando luz",
+      "campos magnéticos",
+      "fractais se quebrando",
+      "geometrias sagradas",
+      "portais de luz",
+      "cosmos em colapso"
+    ],
+    "prompt_language": "en"
+  },
+
+  "audio": {
+    "style": ["dark", "cinematográfico", "misterioso", "quântico"],
+    "allowed_types": ["drones", "rumbles", "frequências", "texturas sonoras", "ambiências"],
+    "forbidden_types": ["música melódica", "voz"],
+    "prompt_language": "en",
+    "sfx_length": "8-15 palavras",
+    "references": ["frequências Hz", "batimentos binaurais", "harmônicos Solfeggio"]
+  },
+
+  "agents": {
+    "copywriter": {
+      "persona_name": "A Narradora",
+      "persona_role": "Copywriter",
+      "description": "Especialista em roteiros usando o método da marca"
+    },
+    "diretor_cena": {
+      "persona_name": "O Visionário",
+      "persona_role": "Diretor de Cena",
+      "description": "Cria descrições visuais surrealistas para cada fala",
+      "output_language": "en",
+      "chat_language": "pt-BR"
+    },
+    "sonoplasta": {
+      "persona_name": "O Artesão do Som",
+      "persona_role": "Sonoplasta",
+      "description": "Cria texturas sonoras ambientais para cada cena"
+    },
+    "voz": {
+      "persona_name": "A Voz",
+      "persona_role": "Narrador",
+      "description": "Prepara falas para narração cinematográfica"
+    },
+    "diretor_artistico": {
+      "persona_name": "O Arquiteto",
+      "persona_role": "Diretor Artístico",
+      "description": "Orquestra a produção visual dos carrosséis"
+    },
+    "engenheiro_reels": {
+      "persona_name": "O Espião",
+      "persona_role": "Engenheiro de Reels",
+      "description": "Analisa o que faz um Reel viral e traduz para o estilo da marca"
+    },
+    "roteirista": {
+      "persona_name": "O Fatiador",
+      "persona_role": "Roteirista",
+      "description": "Fatia roteiros em cenas de produção prontas para o pipeline"
+    },
+    "oraculo": {
+      "persona_name": "O Vidente",
+      "persona_role": "Oráculo de Métricas",
+      "description": "Analisa métricas e padrões de engajamento"
+    }
+  },
+
+  "metrics": {
+    "platform": "Instagram",
+    "handle": "@afonteoculta",
+    "last_updated": "2026-05-24",
+    "posts": 843,
+    "likes": 3680000,
+    "comments": 298000,
+    "saves": 849000,
+    "shares": 1660000,
+    "reach": 38600000,
+    "followers_gained_organic": 24189
+  },
+
+  "publishing": {
+    "platform": "Instagram",
+    "auto_publish": true,
+    "schedule_days": ["segunda", "quarta", "sexta"],
+    "preferred_time": "18:00",
+    "timezone": "America/Sao_Paulo"
+  }
+}

@@ -1,0 +1,56 @@
+name: Oraculo
+
+services:
+  db:
+    image: pgvector/pgvector:pg14
+    container_name: oraculo_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-123456}
+      POSTGRES_DB: ${DB_NAME:-oracle_manager}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
+    container_name: oraculo_backend
+    restart: always
+    ports:
+      - "3131:3131"
+    environment:
+      - PORT=3131
+      - NODE_ENV=development
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-123456}
+      - DB_NAME=${DB_NAME:-oracle_manager}
+    env_file:
+      - path: ../.env
+        required: false
+    depends_on:
+      - db
+    volumes:
+      - ../backend:/app/backend
+      - ../frontend:/app/frontend
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend.Dockerfile
+    container_name: oraculo_frontend
+    restart: always
+    ports:
+      - "5176:5176"
+    depends_on:
+      - backend
+    volumes:
+      - ../frontend:/usr/share/nginx/html:ro
+
+volumes:
+  pgdata:

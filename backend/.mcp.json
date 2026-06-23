@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "claude-video-vision": {
+      "command": "node",
+      "args": ["C:/Users/julia/nano-banana-mcp/claude-video-vision/mcp-server/dist/index.js"],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+      }
+    }
+  }
+}

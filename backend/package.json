@@ -1,0 +1,21 @@
+{
+  "name": "nano-banana-mcp",
+  "version": "1.0.0",
+  "description": "MCP Server para geração de imagens com Gemini (Nano Banana) — Fonte Oculta",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dashboard": "node dashboard/server.js",
+    "sync": "node sync-b2.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1067.0",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "cookie-session": "^2.1.1",
+    "docx": "^9.6.1",
+    "express-session": "^1.19.0",
+    "pptxgenjs": "^4.0.1",
+    "zod": "^3.25.28"
+  }
+}

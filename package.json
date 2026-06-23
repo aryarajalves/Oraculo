@@ -1,0 +1,10 @@
+{
+  "name": "nano-banana-mcp-root",
+  "version": "1.0.0",
+  "description": "Root delegator for nano-banana-mcp",
+  "scripts": {
+    "start": "npm --prefix backend run start",
+    "dashboard": "npm --prefix backend run dashboard",
+    "sync": "npm --prefix backend run sync"
+  }
+}

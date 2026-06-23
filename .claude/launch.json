@@ -1,0 +1,35 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "oraculo-presentation",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "7842", "--directory", "C:/Users/julia/nano-banana-mcp/presentation"],
+      "port": 7842
+    },
+    {
+      "name": "fonte-oculta-dashboard",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["dashboard/server.js"],
+      "port": 3131
+    },
+    {
+      "name": "workflow",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["workflow/server.cjs"],
+      "port": 4242
+    }
+  ,{
+      "name": "mapa-astral",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["start_mapa_astral.py"],
+      "port": 8003
+    }
+  ,{
+      "name": "social-selling",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["C:/Users/julia/Downloads/social-selling/server.py"],
+      "port": 5050
+    }
+  ]
+}
