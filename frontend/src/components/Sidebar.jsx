@@ -5,14 +5,14 @@ export default function Sidebar({ activeTab, setActiveTab, branding, onNewCarous
     {
       title: 'Criação',
       items: [
-        { id: 'criador', label: 'Criador', icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-          </svg>
-        )},
         { id: 'carrosseis', label: 'Carrosséis', icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+          </svg>
+        )},
+        { id: 'criador', label: 'Criador', icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
           </svg>
         )},
         { id: 'calendario', label: 'Calendário', icon: (
@@ -99,12 +99,12 @@ export default function Sidebar({ activeTab, setActiveTab, branding, onNewCarous
           </svg>
           Novo Carrossel
         </button>
-        <a href="/auth/logout" className="btn-logout" title="Sair">
+        <button onClick={() => window.dispatchEvent(new CustomEvent('show-logout-modal'))} className="btn-logout" title="Sair" style={{ background: 'transparent', border: 'none', width: '100%', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', textAlign: 'left', padding: '10px 16px' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
           Sair
-        </a>
+        </button>
       </div>
     </aside>
   );

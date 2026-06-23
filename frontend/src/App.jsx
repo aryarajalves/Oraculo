@@ -15,6 +15,11 @@ import LiveGenPanel from './components/LiveGenPanel';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
+    // Se o usuário veio da página de login, forçamos 'carrosseis'
+    if (document.referrer && document.referrer.includes('login.html')) {
+      localStorage.setItem('activeTab', 'carrosseis');
+      return 'carrosseis';
+    }
     return localStorage.getItem('activeTab') || 'carrosseis';
   });
 
@@ -44,6 +49,7 @@ export default function App() {
   // Toast
   const [toastMessage, setToastMessage] = useState('');
   const [toastShow, setToastShow] = useState(false);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [branding, setBranding] = useState({
     logoText: 'FONTE OCULTA',
     logoSub: 'PRODUÇÃO',
@@ -58,6 +64,12 @@ export default function App() {
     loadStats();
     setupSSE();
     loadBranding();
+
+    const handleShowLogout = () => setLogoutModalOpen(true);
+    window.addEventListener('show-logout-modal', handleShowLogout);
+    return () => {
+      window.removeEventListener('show-logout-modal', handleShowLogout);
+    };
   }, []);
 
   const loadBranding = async () => {
@@ -380,6 +392,26 @@ export default function App() {
           setLightboxOpen(true);
         }}
       />
+
+      {logoutModalOpen && (
+        <div className="form-modal open" id="logout-confirm-modal" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.75)' }}>
+          <div className="form-box" style={{ maxWidth: '400px', width: '100%', textAlign: 'center', padding: '30px', animation: 'scaleUp 0.2s ease-out' }}>
+            <div style={{ fontSize: '32px', marginBottom: '16px' }}>🚪</div>
+            <div className="form-title" style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', letterSpacing: '0.05em' }}>CONFIRMAR SAÍDA</div>
+            <div className="settings-group-sub" style={{ marginBottom: '24px', fontSize: '13px', color: 'var(--text-3)' }}>
+              Tem certeza que deseja encerrar a sua sessão atual no painel do Oráculo?
+            </div>
+            <div className="form-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button className="btn btn-outline" onClick={() => setLogoutModalOpen(false)} style={{ flex: 1 }}>
+                Voltar
+              </button>
+              <a href="/auth/logout" className="btn btn-gold" style={{ flex: 1, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600' }}>
+                Sair
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={`toast ${toastShow ? 'show' : ''}`} id="toast">
         {toastMessage}
