@@ -44,12 +44,29 @@ export default function App() {
   // Toast
   const [toastMessage, setToastMessage] = useState('');
   const [toastShow, setToastShow] = useState(false);
+  const [branding, setBranding] = useState({
+    logoText: 'FONTE OCULTA',
+    logoSub: 'PRODUÇÃO',
+    logoSize: '13px',
+    logoColor: '#ffffff',
+    carouselTextSize: '15px',
+    carouselTextColor: '#e4e4e7'
+  });
 
   useEffect(() => {
     loadCarousels();
     loadStats();
     setupSSE();
+    loadBranding();
   }, []);
+
+  const loadBranding = async () => {
+    try {
+      const res = await fetch('/api/settings/branding');
+      const data = await res.json();
+      if (data) setBranding(data);
+    } catch (e) {}
+  };
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -238,11 +255,29 @@ export default function App() {
     }
   };
 
+  const formatSize = (val) => {
+    if (!val) return '';
+    const clean = val.trim();
+    if (/^\d+$/.test(clean)) return `${clean}px`;
+    return clean;
+  };
+
   return (
     <div className="app-shell">
+      <style>{`
+        .brand-name {
+          font-size: ${formatSize(branding.logoSize)} !important;
+          color: ${branding.logoColor} !important;
+        }
+        .carousel-card-title, .carousel-title, .slide-text, .lb-editor-textarea, .meta-textarea, .slide-preview-text {
+          font-size: ${formatSize(branding.carouselTextSize)} !important;
+          color: ${branding.carouselTextColor} !important;
+        }
+      `}</style>
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        branding={branding}
         onNewCarousel={() => { setNewModalDefaults(null); setNewModalOpen(true); }}
       />
 
@@ -303,7 +338,7 @@ export default function App() {
         {activeTab === 'radar' && <Radar showToast={showToast} />}
         {activeTab === 'fabrica' && <VideoFactory />}
         {activeTab === 'criador' && <Criador onStartGeneration={handleStartGeneration} showToast={showToast} />}
-        {activeTab === 'configuracoes' && <Settings showToast={showToast} />}
+        {activeTab === 'configuracoes' && <Settings showToast={showToast} onLoadBranding={loadBranding} />}
       </div>
 
       <Lightbox

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Sidebar({ activeTab, setActiveTab, onNewCarousel }) {
+export default function Sidebar({ activeTab, setActiveTab, branding, onNewCarousel }) {
   const categories = [
     {
       title: 'Criação',
@@ -59,8 +59,8 @@ export default function Sidebar({ activeTab, setActiveTab, onNewCarousel }) {
       <div className="sidebar-brand">
         <div className="brand-bar"></div>
         <div>
-          <div className="brand-name">FONTE OCULTA</div>
-          <div className="brand-sub">Produção</div>
+          <div className="brand-name">{branding?.logoText || 'FONTE OCULTA'}</div>
+          <div className="brand-sub">{branding?.logoSub || 'Produção'}</div>
         </div>
       </div>
       <nav className="sidebar-nav">

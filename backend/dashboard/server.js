@@ -906,6 +906,42 @@ app.post('/api/settings/prompts/rename', (req, res) => {
   }
 });
 
+// ── API: Branding e Estilo Visual ─────────────────────────────────────────────
+const BRANDING_FILE = path.join(__dirname, "data", "branding.json");
+
+function readBranding() {
+  try {
+    if (fs.existsSync(BRANDING_FILE)) {
+      return JSON.parse(fs.readFileSync(BRANDING_FILE, 'utf-8'));
+    }
+  } catch (e) {}
+  return {
+    logoText: "FONTE OCULTA",
+    logoSub: "PRODUÇÃO",
+    logoSize: "13px",
+    logoColor: "#ffffff",
+    carouselTextSize: "15px",
+    carouselTextColor: "#e4e4e7"
+  };
+}
+
+function writeBranding(data) {
+  try {
+    fs.writeFileSync(BRANDING_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (e) {}
+}
+
+app.get('/api/settings/branding', (req, res) => {
+  res.json(readBranding());
+});
+
+app.post('/api/settings/branding', (req, res) => {
+  const data = req.body;
+  if (!data) return res.status(400).json({ error: 'corpo inválido' });
+  writeBranding(data);
+  res.json({ ok: true });
+});
+
 
 // ── API: Radar de Descobertas ─────────────────────────────────────────────────
 const RADAR_DATA_FILE = path.join(__dirname, "data", "radar_data.json");
