@@ -1,12 +1,14 @@
+# Stage 1: Build React App
+FROM node:20 AS builder
+WORKDIR /app
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Serve with Nginx
 FROM nginx:alpine
-
-# Copia a configuração personalizada do Nginx
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copia os arquivos estáticos do frontend
-COPY frontend/ /usr/share/nginx/html/
-
-# Expõe a porta de acesso da interface
+COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 5176
-
 CMD ["nginx", "-g", "daemon off;"]

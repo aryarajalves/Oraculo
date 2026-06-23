@@ -49,8 +49,6 @@ services:
       - "5176:5176"
     depends_on:
       - backend
-    volumes:
-      - ../frontend:/usr/share/nginx/html:ro
 
 volumes:
   pgdata:
