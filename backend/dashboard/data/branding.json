@@ -1,8 +1,9 @@
 {
-  "logoText": "ORÁCULO PRO",
+  "companyName": "FONTE OCULTA",
+  "logoText": "FONTE OCULTA",
   "logoSub": "PRODUÇÃO",
-  "logoSize": "12",
-  "logoColor": "#ff007f",
-  "carouselTextSize": "12",
-  "carouselTextColor": "#00ffcc"
+  "logoSize": "13px",
+  "logoColor": "#ffffff",
+  "carouselTextSize": "15px",
+  "carouselTextColor": "#e4e4e7"
 }

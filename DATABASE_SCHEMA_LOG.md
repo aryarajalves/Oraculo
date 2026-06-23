@@ -52,3 +52,40 @@ Substituição da persistência local baseada em arquivos JSON (`carousels.json`
    ```bash
    docker exec oraculo_backend node backend/dashboard/scripts/migrate.js
    ```
+
+---
+
+## [2026-06-23] Sistema de Gestão de Usuários (dashboard_users e invitations)
+
+### Motivação
+Adicionar persistência para suporte a múltiplos usuários no dashboard, permitindo que o Super Admin envie links de convites temporários com níveis de acesso configuráveis (User ou Admin) e prazos de expiração.
+
+### Tabelas Criadas
+1. **`dashboard_users`**
+   - Armazena os usuários registrados na plataforma.
+   - Colunas:
+     - `id` SERIAL PRIMARY KEY
+     - `name` VARCHAR(255) NOT NULL
+     - `email` VARCHAR(255) UNIQUE NOT NULL
+     - `password` VARCHAR(255) NOT NULL (Senha criptografada com SHA-256)
+     - `role` VARCHAR(50) NOT NULL
+     - `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+2. **`invitations`**
+   - Armazena os tokens de convite gerados pelo Super Admin.
+   - Colunas:
+     - `id` VARCHAR(100) PRIMARY KEY (Token UUID único)
+     - `role` VARCHAR(50) NOT NULL
+     - `expires_at` TIMESTAMP NOT NULL
+     - `status` VARCHAR(50) NOT NULL
+     - `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+### Scripts de Migração
+- **Script de Migração:** `backend/dashboard/scripts/migrate_users.js`
+  - *Função:* Executa a criação das tabelas `dashboard_users` e `invitations` no banco de dados.
+
+### Instruções para Deploy
+1. Executar o script de migração no container:
+   ```bash
+   docker exec oraculo_backend node backend/dashboard/scripts/migrate_users.js
+   ```

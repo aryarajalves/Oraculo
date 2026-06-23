@@ -232,6 +232,27 @@
 </div>
 
 <script>
+  // Carrega dinamicamente a identidade visual (nome da empresa)
+  fetch('/api/settings/branding')
+    .then(res => res.json())
+    .then(data => {
+      const companyName = data.companyName || data.logoText || 'Fonte Oculta';
+      document.title = `${companyName} — Login`;
+      
+      const brandEl = document.querySelector('.brand');
+      if (brandEl) {
+        const words = companyName.trim().split(/\s+/);
+        if (words.length > 1) {
+          const lastWord = words.pop();
+          const firstPart = words.join(' ');
+          brandEl.innerHTML = `${firstPart}<br><em>${lastWord}</em>`;
+        } else {
+          brandEl.innerHTML = `<em>${companyName}</em>`;
+        }
+      }
+    })
+    .catch(err => console.error('Erro ao carregar branding:', err));
+
   // Show error if redirected with ?error=1
   if (window.location.search.includes('error=1')) {
     document.getElementById('errorMsg').classList.add('visible');

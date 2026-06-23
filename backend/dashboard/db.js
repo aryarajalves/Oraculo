@@ -48,10 +48,33 @@ export async function initDb() {
     );
   `;
 
+  const createDashboardUsersTable = `
+    CREATE TABLE IF NOT EXISTS dashboard_users (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      role VARCHAR(50) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  const createInvitationsTable = `
+    CREATE TABLE IF NOT EXISTS invitations (
+      id VARCHAR(100) PRIMARY KEY,
+      role VARCHAR(50) NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      status VARCHAR(50) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
   try {
     await query(createCarouselsTable);
     await query(createReelsHistoryTable);
-    console.log('✅ Tabelas carousels e reels_history validadas/criadas com sucesso.');
+    await query(createDashboardUsersTable);
+    await query(createInvitationsTable);
+    console.log('✅ Tabelas carousels, reels_history, dashboard_users e invitations validadas/criadas com sucesso.');
   } catch (err) {
     console.error('❌ Erro ao inicializar tabelas do banco de dados:', err);
     throw err;

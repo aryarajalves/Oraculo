@@ -19,6 +19,7 @@ export default function Settings({ showToast, onLoadBranding }) {
 
   // Branding
   const [brandingData, setBrandingData] = useState({
+    companyName: 'FONTE OCULTA',
     logoText: 'FONTE OCULTA',
     logoSub: 'PRODUÇÃO',
     logoSize: '13px',
@@ -536,6 +537,18 @@ export default function Settings({ showToast, onLoadBranding }) {
         <div className="section" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div className="key-group">
             <div className="key-group-title">Logomarca & Cabeçalho</div>
+
+            <div className="key-row" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+              <div className="key-label" style={{ marginBottom: '4px' }}>Nome da Empresa (Título da Aba & Sidebar)</div>
+              <input
+                className="key-input"
+                type="text"
+                value={brandingData.companyName || ''}
+                onChange={(e) => setBrandingData(prev => ({ ...prev, companyName: e.target.value }))}
+                style={{ width: '100%', padding: '10px 14px' }}
+                placeholder="Ex: FONTE OCULTA"
+              />
+            </div>
             
             <div className="key-row" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
               <div className="key-label" style={{ marginBottom: '4px' }}>Texto da Logomarca</div>
@@ -671,7 +684,7 @@ export default function Settings({ showToast, onLoadBranding }) {
                 background: 'rgba(0,0,0,0.85)',
                 borderRadius: '4px'
               }}>
-                {brandingData.logoText || 'LOGOMARCA'}
+                {brandingData.companyName || brandingData.logoText || 'LOGOMARCA'}
               </div>
               <div style={{
                 fontSize: brandingData.carouselTextSize ? (brandingData.carouselTextSize.trim().match(/^\d+$/) ? `${brandingData.carouselTextSize.trim()}px` : brandingData.carouselTextSize) : '15px',

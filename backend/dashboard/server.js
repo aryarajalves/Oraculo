@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import { execFile, spawn } from "child_process";
 import { promisify } from "util";
 import { query, initDb } from "./db.js";
+import crypto from "crypto";
 
 const execFileAsync = promisify(execFile);
 
@@ -77,40 +78,284 @@ app.use(cookieSession({
   maxAge: 1000 * 60 * 60 * 24 * 30, // 30 dias
 }));
 
+// Hash helper para senhas
+function hashPassword(password) {
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
+
+// Helper para obter e-mail do Super Admin
+function getSuperAdminEmail() {
+  return process.env.DASHBOARD_USER || 'jordao';
+}
+
+// Helper para verificar se um e-mail pertence ao Super Admin (ou administradores legados do env)
+function isUserSuperAdmin(email) {
+  const superAdminUser = getSuperAdminEmail();
+  return email === superAdminUser || email === 'afonteoculta@gmail.com' || email === 'afonteoculta';
+}
+
 // ── Auth middleware ───────────────────────────────────────────────────────────
 function requireAuth(req, res, next) {
-  // Rotas públicas: login page, auth endpoints, assets estáticos do login
-  const publicPaths = ['/login.html', '/auth/login', '/auth/logout'];
+  // Rotas públicas (verificação e registro incluídos)
+  const publicPaths = ['/login.html', '/auth/login', '/auth/logout', '/api/settings/branding', '/register.html', '/api/users/register'];
   if (publicPaths.includes(req.path)) return next();
+
+  // Verifica se é o endpoint público de verificação de convite: /api/users/invitations/[qualquer-id]/verify
+  if (req.path.startsWith('/api/users/invitations/') && req.path.endsWith('/verify')) {
+    return next();
+  }
+
   if (req.session && req.session.authenticated) return next();
   // APIs retornam 401, rotas HTML redirecionam para login
   if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Não autenticado' });
   return res.redirect('/login.html');
 }
 
+// Middleware para restringir rotas apenas ao Super Admin
+function requireSuperAdmin(req, res, next) {
+  if (req.session && req.session.authenticated && isUserSuperAdmin(req.session.user)) {
+    return next();
+  }
+  return res.status(403).json({ error: 'Acesso negado. Apenas o Super Admin tem acesso.' });
+}
+
 app.use(requireAuth);
 
 // ── Rotas de Auth ─────────────────────────────────────────────────────────────
-const USERS = [
-  { username: process.env.DASHBOARD_USER || 'jordao',        password: process.env.DASHBOARD_PASS || 'fonteoculta2024' },
-  { username: 'afonteoculta@gmail.com',                      password: process.env.DASHBOARD_PASS2 || 'FonteOculta@2025' },
-  { username: 'afonteoculta',                                password: process.env.DASHBOARD_PASS2 || 'FonteOculta@2025' },
-];
-
-app.post('/auth/login', (req, res) => {
+app.post('/auth/login', async (req, res) => {
   const { username, password } = req.body;
-  const matched = USERS.find(u => u.username === username && u.password === password);
-  if (matched) {
+
+  // 1. Verifica contra o Super Admin (legados incluídos)
+  const superAdminUser = getSuperAdminEmail();
+  const superAdminPass = process.env.DASHBOARD_PASS || 'fonteoculta2024';
+  
+  const isSuper = (username === superAdminUser && password === superAdminPass) ||
+                  (username === 'afonteoculta@gmail.com' && password === (process.env.DASHBOARD_PASS2 || 'FonteOculta@2025')) ||
+                  (username === 'afonteoculta' && password === (process.env.DASHBOARD_PASS2 || 'FonteOculta@2025'));
+
+  if (isSuper) {
     req.session.authenticated = true;
-    req.session.user = matched.username;
+    req.session.user = username;
+    req.session.role = 'admin';
     return res.redirect('/');
   }
+
+  // 2. Verifica contra o banco de dados (tabela dashboard_users)
+  try {
+    const hashedPassword = hashPassword(password);
+    const dbUserRes = await query(
+      "SELECT * FROM dashboard_users WHERE email = $1 AND password = $2",
+      [username, hashedPassword]
+    );
+
+    if (dbUserRes.rows.length > 0) {
+      const u = dbUserRes.rows[0];
+      req.session.authenticated = true;
+      req.session.user = u.email;
+      req.session.role = u.role;
+      return res.redirect('/');
+    }
+  } catch (err) {
+    console.error("Erro ao validar login no banco:", err);
+  }
+
   return res.redirect('/login.html?error=1');
 });
 
 app.get('/auth/logout', (req, res) => {
   req.session = null; // cookie-session: limpa setando null
   res.redirect('/login.html');
+});
+
+// ── Rotas de Gestão de Usuários & Convites ─────────────────────────────────────
+
+// Obter usuário atual logado
+app.get('/api/me', (req, res) => {
+  if (!req.session || !req.session.authenticated) {
+    return res.status(401).json({ error: 'Não autenticado' });
+  }
+  const isSuper = isUserSuperAdmin(req.session.user);
+  res.json({
+    email: req.session.user,
+    isSuperAdmin: isSuper,
+    role: isSuper ? 'admin' : (req.session.role || 'user')
+  });
+});
+
+// Listar todos os usuários (Super Admin apenas)
+app.get('/api/users', requireSuperAdmin, async (req, res) => {
+  try {
+    const dbUsers = await query("SELECT id, name, email, role, created_at FROM dashboard_users ORDER BY id ASC");
+    
+    // Insere o Super Admin virtual no topo da lista
+    const superAdminUser = {
+      id: 'super-admin',
+      name: 'Super Admin',
+      email: getSuperAdminEmail(),
+      role: 'admin',
+      created_at: new Date().toISOString(),
+      isSuperAdmin: true
+    };
+    
+    const list = [superAdminUser, ...dbUsers.rows.map(u => ({ ...u, isSuperAdmin: false }))];
+    res.json(list);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao listar usuários: ' + err.message });
+  }
+});
+
+// Editar usuário (Super Admin apenas)
+app.put('/api/users/:id', requireSuperAdmin, async (req, res) => {
+  const { id } = req.params;
+  if (id === 'super-admin') {
+    return res.status(400).json({ error: 'O Super Admin do sistema não pode ser editado.' });
+  }
+  
+  const { name, email, role } = req.body;
+  if (!name || !email || !role) {
+    return res.status(400).json({ error: 'Preencha todos os campos obrigatórios.' });
+  }
+  
+  try {
+    const checkUser = await query("SELECT * FROM dashboard_users WHERE id = $1", [id]);
+    if (checkUser.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+    
+    const checkEmail = await query("SELECT * FROM dashboard_users WHERE email = $1 AND id <> $2", [email, id]);
+    if (checkEmail.rows.length > 0 || email === getSuperAdminEmail()) {
+      return res.status(400).json({ error: 'Este e-mail já está em uso.' });
+    }
+    
+    await query(
+      "UPDATE dashboard_users SET name = $1, email = $2, role = $3 WHERE id = $4",
+      [name, email, role, id]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao editar usuário: ' + err.message });
+  }
+});
+
+// Excluir usuário (Super Admin apenas)
+app.delete('/api/users/:id', requireSuperAdmin, async (req, res) => {
+  const { id } = req.params;
+  if (id === 'super-admin') {
+    return res.status(400).json({ error: 'O Super Admin do sistema não pode ser excluído.' });
+  }
+  
+  try {
+    await query("DELETE FROM dashboard_users WHERE id = $1", [id]);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao excluir usuário: ' + err.message });
+  }
+});
+
+// Listar convites (Super Admin apenas)
+app.get('/api/users/invitations', requireSuperAdmin, async (req, res) => {
+  try {
+    // Atualiza expirados automaticamente
+    await query("UPDATE invitations SET status = 'expired' WHERE expires_at < CURRENT_TIMESTAMP AND status = 'pending'");
+    const invites = await query("SELECT * FROM invitations ORDER BY created_at DESC");
+    res.json(invites.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao obter convites: ' + err.message });
+  }
+});
+
+// Criar convite (Super Admin apenas)
+app.post('/api/users/invitations', requireSuperAdmin, async (req, res) => {
+  const { role, hours } = req.body;
+  if (!role || !hours) {
+    return res.status(400).json({ error: 'Preencha o cargo e o prazo de expiração.' });
+  }
+  
+  const token = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+  const expiresAt = new Date(Date.now() + Number(hours) * 60 * 60 * 1000);
+  
+  try {
+    await query(
+      "INSERT INTO invitations (id, role, expires_at, status) VALUES ($1, $2, $3, $4)",
+      [token, role, expiresAt, 'pending']
+    );
+    res.json({ ok: true, inviteId: token });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao gerar convite: ' + err.message });
+  }
+});
+
+// Cancelar convite (Super Admin apenas)
+app.post('/api/users/invitations/:id/revoke', requireSuperAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await query("DELETE FROM invitations WHERE id = $1", [id]);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao cancelar convite: ' + err.message });
+  }
+});
+
+// Verificar validade do convite (PÚBLICO)
+app.get('/api/users/invitations/:id/verify', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await query("UPDATE invitations SET status = 'expired' WHERE expires_at < CURRENT_TIMESTAMP AND status = 'pending'");
+    const inviteRes = await query("SELECT * FROM invitations WHERE id = $1", [id]);
+    if (inviteRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Convite não encontrado.' });
+    }
+    
+    const invite = inviteRes.rows[0];
+    if (invite.status !== 'pending') {
+      return res.status(400).json({ error: `Este convite não está ativo. Status atual: ${invite.status}` });
+    }
+    
+    res.json({ valid: true, role: invite.role });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao verificar convite: ' + err.message });
+  }
+});
+
+// Registrar usuário usando um convite (PÚBLICO)
+app.post('/api/users/register', async (req, res) => {
+  const { inviteId, name, email, password } = req.body;
+  if (!inviteId || !name || !email || !password) {
+    return res.status(400).json({ error: 'Preencha todos os campos obrigatórios.' });
+  }
+  
+  try {
+    // 1. Verifica convite
+    const inviteRes = await query("SELECT * FROM invitations WHERE id = $1", [inviteId]);
+    if (inviteRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Convite não encontrado.' });
+    }
+    
+    const invite = inviteRes.rows[0];
+    if (invite.status !== 'pending' || new Date(invite.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'Este convite expirou ou já foi utilizado.' });
+    }
+    
+    // 2. Verifica e-mail duplicado
+    const checkEmail = await query("SELECT * FROM dashboard_users WHERE email = $1", [email]);
+    if (checkEmail.rows.length > 0 || email === getSuperAdminEmail()) {
+      return res.status(400).json({ error: 'Este e-mail já está cadastrado no sistema.' });
+    }
+    
+    // 3. Cadastra o novo usuário
+    const hashedPassword = hashPassword(password);
+    await query(
+      "INSERT INTO dashboard_users (name, email, password, role) VALUES ($1, $2, $3, $4)",
+      [name, email, hashedPassword, invite.role]
+    );
+    
+    // 4. Marca convite como aceito
+    await query("UPDATE invitations SET status = 'accepted' WHERE id = $1", [inviteId]);
+    
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao registrar usuário: ' + err.message });
+  }
 });
 
 app.use(express.static(PUBLIC_DIR));

@@ -12,6 +12,7 @@ import Lightbox from './components/Lightbox';
 import NewCarouselModal from './components/NewCarouselModal';
 import EditSlideModal from './components/EditSlideModal';
 import LiveGenPanel from './components/LiveGenPanel';
+import UsersManagement from './components/UsersManagement';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
@@ -51,6 +52,7 @@ export default function App() {
   const [toastShow, setToastShow] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [branding, setBranding] = useState({
+    companyName: 'FONTE OCULTA',
     logoText: 'FONTE OCULTA',
     logoSub: 'PRODUÇÃO',
     logoSize: '13px',
@@ -58,12 +60,14 @@ export default function App() {
     carouselTextSize: '15px',
     carouselTextColor: '#e4e4e7'
   });
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     loadCarousels();
     loadStats();
     setupSSE();
     loadBranding();
+    loadCurrentUser();
 
     const handleShowLogout = () => setLogoutModalOpen(true);
     window.addEventListener('show-logout-modal', handleShowLogout);
@@ -71,6 +75,22 @@ export default function App() {
       window.removeEventListener('show-logout-modal', handleShowLogout);
     };
   }, []);
+
+  const loadCurrentUser = async () => {
+    try {
+      const res = await fetch('/api/me');
+      const data = await res.json();
+      if (res.ok) setCurrentUser(data);
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    if (branding && branding.companyName) {
+      document.title = `${branding.companyName} — Dashboard de Produção`;
+    } else {
+      document.title = "Fonte Oculta — Dashboard de Produção";
+    }
+  }, [branding]);
 
   const loadBranding = async () => {
     try {
@@ -290,13 +310,14 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         branding={branding}
+        currentUser={currentUser}
         onNewCarousel={() => { setNewModalDefaults(null); setNewModalOpen(true); }}
       />
 
       <div className="main-area">
         <header className="main-header">
           <div className="page-title" style={{ textTransform: 'capitalize' }}>
-            {activeTab === 'configuracoes' ? 'Configurações' : activeTab === 'fabrica' ? 'Fábrica de Vídeos' : activeTab}
+            {activeTab === 'configuracoes' ? 'Configurações' : activeTab === 'fabrica' ? 'Fábrica de Vídeos' : activeTab === 'users' ? 'Gestão de Usuários' : activeTab}
           </div>
           <div className="header-actions">
             <button className="btn btn-ghost" onClick={() => window.location.reload()}>
@@ -351,6 +372,7 @@ export default function App() {
         {activeTab === 'fabrica' && <VideoFactory />}
         {activeTab === 'criador' && <Criador onStartGeneration={handleStartGeneration} showToast={showToast} />}
         {activeTab === 'configuracoes' && <Settings showToast={showToast} onLoadBranding={loadBranding} />}
+        {activeTab === 'users' && <UsersManagement showToast={showToast} />}
       </div>
 
       <Lightbox
