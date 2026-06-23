@@ -30,22 +30,7 @@ export default function App() {
   const [allCarousels, setAllCarousels] = useState([]);
   const [stats, setStats] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
-  const [initialChatPrompt, setInitialChatPrompt] = useState('');
-
-  const handleSendToChat = (formData) => {
-    const { title, theme, format, dir, caption, notes } = formData;
-    const formattedPrompt = `Dado o seguinte briefing para criação de um carrossel, avalie a ideia, o gancho/título, o formato e o tema escolhido. Sugira melhorias na estrutura, no gancho e me dê ideias de como estruturar os slides e escrever a legenda (caption) perfeita para maximizar o engajamento:
-
-- **Título / Gancho:** ${title || 'Não definido'}
-- **Tema:** ${theme || 'Não definido'}
-- **Formato:** ${format || 'Não definido'}
-- **Pasta das artes:** ${dir || 'Não definido'}
-- **Legenda (Caption):** ${caption || 'Não definido'}
-- **Notas internas:** ${notes || 'Não definido'}`;
-
-    setInitialChatPrompt(formattedPrompt);
-    setActiveTab('criador');
-  };
+  const [shouldAddFormMessage, setShouldAddFormMessage] = useState(false);
 
   // Modais
   const [newModalOpen, setNewModalOpen] = useState(false);
@@ -347,16 +332,7 @@ export default function App() {
         branding={branding}
         currentUser={currentUser}
         onNewCarousel={() => {
-          const templatePrompt = `Dado o seguinte briefing para criação de um carrossel, avalie a ideia, o gancho/título, o formato e o tema escolhido. Sugira melhorias na estrutura, no gancho e me dê ideias de como estruturar os slides e escrever a legenda (caption) perfeita para maximizar o engajamento:
-
-- **Título / Gancho:** 
-- **Tema:** 
-- **Formato:** 
-- **Pasta das artes:** 
-- **Legenda (Caption):** 
-- **Notas internas:** `;
-
-          setInitialChatPrompt(templatePrompt);
+          setShouldAddFormMessage(true);
           setActiveTab('criador');
         }}
       />
@@ -421,8 +397,8 @@ export default function App() {
           <Criador
             onStartGeneration={handleStartGeneration}
             showToast={showToast}
-            initialPrompt={initialChatPrompt}
-            clearInitialPrompt={() => setInitialChatPrompt('')}
+            shouldAddFormMessage={shouldAddFormMessage}
+            clearAddFormMessage={() => setShouldAddFormMessage(false)}
           />
         )}
         {activeTab === 'configuracoes' && <Settings showToast={showToast} onLoadBranding={loadBranding} />}
@@ -447,7 +423,6 @@ export default function App() {
         isOpen={newModalOpen}
         onClose={() => setNewModalOpen(false)}
         onCreate={handleCreateCarousel}
-        onSendToChat={handleSendToChat}
         defaults={newModalDefaults}
       />
 

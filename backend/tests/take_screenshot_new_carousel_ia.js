@@ -41,9 +41,30 @@ async function run() {
     await page.click('button:has-text("Novo Carrossel")');
     await page.waitForTimeout(2000); // Aguarda troca de aba
 
-    // Captura o input preenchido no chat com o template limpo
-    console.log('📸 Salvando captura do template preenchido no input...');
+    // 4. Preenche os campos do formulário inline do chat
+    console.log('✍️ Preenchendo campos do formulário inline no chat...');
+    await page.fill('input[placeholder="Ex: O que a física prova sobre dinheiro..."]', 'Como programar melhor com inteligência artificial');
+    await page.fill('input[placeholder="Ex: frequencia-dinheiro"]', 'ia-desenvolvimento');
+    await page.selectOption('.criador-msgs select', 'B'); // Formato B
+    await page.fill('input[placeholder="C:/Users/julia/Desktop/nome-da-pasta"]', 'C:/Users/aryar/Desktop/ia-dev');
+    await page.fill('textarea[placeholder="Legenda do post..."]', 'Aprenda as melhores dicas para trabalhar com IA de forma eficiente.');
+    await page.fill('textarea[placeholder="Observações..."]', 'Usar tom direto e curto.');
+
+    // Captura o formulário preenchido
+    console.log('📸 Salvando captura do formulário preenchido no chat...');
     await page.screenshot({ path: path.join(ARTIFACT_DIR, 'new_carousel_ia_input_prefilled.png') });
+
+    // 5. Clica em "Avaliar Briefing com IA"
+    console.log('📤 Clicando no botão de avaliar briefing...');
+    await page.click('button:has-text("Avaliar Briefing com IA")');
+    
+    // Aguarda a resposta da IA começar a chegar (streaming)
+    console.log('⏳ Aguardando streaming da resposta da IA...');
+    await page.waitForTimeout(6000);
+
+    // Captura a tela do criador (chat) com a resposta
+    console.log('📸 Salvando captura da resposta no chat...');
+    await page.screenshot({ path: path.join(ARTIFACT_DIR, 'new_carousel_ia_chat_response.png') });
 
     console.log('🎉 Teste visual concluído com sucesso!');
   } catch (error) {
