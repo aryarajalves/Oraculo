@@ -6,6 +6,14 @@ export default function Oraculo({ showToast }) {
   const [syncing, setSyncing] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Estados de Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+
+  // Cálculos de Paginação
+  const totalPages = Math.ceil(posts.length / itemsPerPage) || 1;
+  const paginatedPosts = posts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   useEffect(() => {
     loadStats();
   }, []);
@@ -101,34 +109,97 @@ export default function Oraculo({ showToast }) {
             <div style={{ fontSize: '13px' }}>Clique em Sincronizar para buscar todos os posts do @afonteoculta</div>
           </div>
         ) : (
-          <table className="oraculo-table">
-            <thead>
-              <tr>
-                <th>Post</th>
-                <th>Likes</th>
-                <th>Comentários</th>
-                <th>Salvamentos</th>
-                <th>Shares</th>
-                <th>Alcance</th>
-                <th>Data</th>
-              </tr>
-            </thead>
-            <tbody>
-              {posts.map((post, index) => (
-                <tr key={index}>
-                  <td>
-                    <div className="oraculo-caption">{post.caption || 'Sem legenda'}</div>
-                  </td>
-                  <td className="oraculo-num">{post.likes}</td>
-                  <td className="oraculo-num">{post.comments}</td>
-                  <td className="oraculo-num">{post.saved}</td>
-                  <td className="oraculo-num">{post.shares}</td>
-                  <td className="oraculo-num">{post.reach}</td>
-                  <td className="oraculo-date">{new Date(post.date).toLocaleDateString('pt-BR')}</td>
+          <div>
+            <table className="oraculo-table">
+              <thead>
+                <tr>
+                  <th>Post</th>
+                  <th>Likes</th>
+                  <th>Comentários</th>
+                  <th>Salvamentos</th>
+                  <th>Shares</th>
+                  <th>Alcance</th>
+                  <th>Data</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {paginatedPosts.map((post, index) => (
+                  <tr key={index}>
+                    <td>
+                      <div className="oraculo-caption">{post.caption || 'Sem legenda'}</div>
+                    </td>
+                    <td className="oraculo-num">{post.likes}</td>
+                    <td className="oraculo-num">{post.comments}</td>
+                    <td className="oraculo-num">{post.saved}</td>
+                    <td className="oraculo-num">{post.shares}</td>
+                    <td className="oraculo-num">{post.reach}</td>
+                    <td className="oraculo-date">{new Date(post.date).toLocaleDateString('pt-BR')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Paginação do Oráculo */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-2)' }}>
+                <span>Mostrar</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border2)',
+                    color: 'var(--text-2)',
+                    padding: '4px 8px',
+                    borderRadius: '5px',
+                    fontSize: '12px',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value={50}>50</option>
+                  <option value={200}>200</option>
+                  <option value={500}>500</option>
+                  <option value={1000}>1000</option>
+                </select>
+                <span>por página</span>
+              </div>
+              
+              <div className="pagination-controls" style={{ display: 'flex', gap: '5px' }}>
+                <button
+                  className="page-btn"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                >
+                  Anterior
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    className={`page-btn ${currentPage === p ? 'active' : ''}`}
+                    onClick={() => setCurrentPage(p)}
+                    style={{
+                      backgroundColor: currentPage === p ? 'var(--gold, #C9A84C)' : '',
+                      borderColor: currentPage === p ? 'var(--gold, #C9A84C)' : '',
+                      color: currentPage === p ? '#000' : ''
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  className="page-btn"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                >
+                  Próximo
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
