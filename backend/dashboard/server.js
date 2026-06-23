@@ -826,6 +826,52 @@ app.post('/api/settings/keys', (req, res) => {
   }
 });
 
+// ── API: Prompts dos Agentes ──────────────────────────────────────────────────
+const AGENTS_DIR = path.join(__dirname, "..", "agents");
+
+app.get('/api/settings/prompts', (req, res) => {
+  try {
+    if (!fs.existsSync(AGENTS_DIR)) {
+      return res.json({ prompts: [] });
+    }
+    const files = fs.readdirSync(AGENTS_DIR);
+    const prompts = files
+      .filter(f => f.endsWith('.md'))
+      .map(f => {
+        const id = f.replace('.md', '');
+        const content = fs.readFileSync(path.join(AGENTS_DIR, f), 'utf-8');
+        const name = id
+          .split('-')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ')
+          .replace('Haucacau', 'HauCacau')
+          .replace('V2', 'V2')
+          .replace('Dna', 'DNA')
+          .replace('Cta', 'CTA');
+        return { id, name, content };
+      });
+    res.json({ prompts });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/settings/prompts', (req, res) => {
+  const { id, content } = req.body;
+  if (!id || content === undefined) {
+    return res.status(400).json({ error: 'Parâmetros inválidos. É necessário fornecer id e content.' });
+  }
+  const safeId = path.basename(id);
+  const filePath = path.join(AGENTS_DIR, `${safeId}.md`);
+  try {
+    fs.writeFileSync(filePath, content, 'utf-8');
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 // ── API: Radar de Descobertas ─────────────────────────────────────────────────
 const RADAR_DATA_FILE = path.join(__dirname, "data", "radar_data.json");
 const RADAR_SCRIPT = path.join(__dirname, "..", "infra", "social", "radar_apify.py");
