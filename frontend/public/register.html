@@ -50,7 +50,7 @@
     position: relative; z-index: 1;
     width: 100%;
     max-width: 440px;
-    padding: 48px 40px;
+    padding: 24px 36px 16px;
     border: 1px solid var(--border);
     background: rgba(12,12,12,0.9);
     text-align: center;
@@ -68,7 +68,7 @@
     text-transform: uppercase;
     color: var(--gold);
     font-family: var(--sans);
-    margin-bottom: 16px;
+    margin-bottom: 8px;
     opacity: 0.8;
   }
 
@@ -90,7 +90,7 @@
     width: 32px; height: 1px;
     background: var(--gold);
     opacity: 0.4;
-    margin: 20px auto;
+    margin: 10px auto;
   }
 
   .subtitle {
@@ -102,7 +102,7 @@
   }
 
   .field {
-    margin-bottom: 14px;
+    margin-bottom: 10px;
     text-align: left;
   }
 
@@ -155,7 +155,7 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     border-radius: 4px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
   }
 
   .btn-submit {
@@ -240,8 +240,8 @@
 
   <!-- Estado: Formulário de Registro -->
   <form id="registerForm" class="hidden">
-    <div style="margin-bottom: 16px;">
-      <span style="font-size: 11px; color: var(--text-dim); display: block; margin-bottom: 6px;">Seu cargo no estúdio será:</span>
+    <div style="margin-bottom: 10px;">
+      <span style="font-size: 11px; color: var(--text-dim); display: block; margin-bottom: 4px;">Seu cargo no estúdio será:</span>
       <div id="roleLabel" class="role-badge">USUÁRIO</div>
     </div>
 
@@ -270,7 +270,7 @@
     <button type="submit" class="btn-submit" id="submitBtn">Concluir Registro</button>
   </form>
 
-  <div style="margin-top: 32px; font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; opacity: 0.5;">
+  <div id="footerText" style="margin-top: 16px; font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; opacity: 0.5;">
     @afonteoculta · Cadastro de Estúdio
   </div>
 </div>
@@ -295,6 +295,12 @@
         } else {
           brandEl.innerHTML = `<em>${companyName}</em>`;
         }
+      }
+      
+      const footerEl = document.getElementById('footerText');
+      if (footerEl) {
+        const handle = companyName.toLowerCase().replace(/\s+/g, '');
+        footerEl.textContent = `@${handle} · Cadastro de Estúdio`;
       }
     })
     .catch(err => console.error('Erro ao carregar branding:', err));
