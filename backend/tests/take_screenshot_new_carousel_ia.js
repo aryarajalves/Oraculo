@@ -12,6 +12,15 @@ async function run() {
   
   await page.setViewportSize({ width: 1280, height: 800 });
 
+  page.on('pageerror', exception => {
+    console.log(`❌ Page Uncaught Exception: ${exception}`);
+  });
+  page.on('console', msg => {
+    if (msg.type() === 'error') {
+      console.log(`❌ Page Console Error: ${msg.text()}`);
+    }
+  });
+
   try {
     // 1. Acessa a página de login
     console.log('🌐 Acessando página de login...');

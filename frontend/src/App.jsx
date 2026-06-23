@@ -95,9 +95,19 @@ export default function App() {
   const loadCurrentUser = async () => {
     try {
       const res = await fetch('/api/me');
+      if (res.status === 401) {
+        window.location.href = '/login.html';
+        return;
+      }
       const data = await res.json();
-      if (res.ok) setCurrentUser(data);
-    } catch (e) {}
+      if (res.ok) {
+        setCurrentUser(data);
+      } else {
+        window.location.href = '/login.html';
+      }
+    } catch (e) {
+      window.location.href = '/login.html';
+    }
   };
 
   useEffect(() => {
@@ -125,8 +135,14 @@ export default function App() {
   const loadCarousels = async () => {
     try {
       const res = await fetch('/api/carousels');
+      if (res.status === 401) {
+        window.location.href = '/login.html';
+        return;
+      }
       const data = await res.json();
-      setAllCarousels(data);
+      if (res.ok) {
+        setAllCarousels(data);
+      }
     } catch (e) {
       showToast('Erro ao carregar carrosséis.');
     }
@@ -135,8 +151,11 @@ export default function App() {
   const loadStats = async () => {
     try {
       const res = await fetch('/api/stats');
+      if (res.status === 401) return;
       const data = await res.json();
-      setStats(data);
+      if (res.ok) {
+        setStats(data);
+      }
     } catch (e) {
       showToast('Erro ao carregar estatísticas.');
     }
