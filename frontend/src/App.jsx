@@ -346,7 +346,19 @@ export default function App() {
         setActiveTab={setActiveTab}
         branding={branding}
         currentUser={currentUser}
-        onNewCarousel={() => { setNewModalDefaults(null); setNewModalOpen(true); }}
+        onNewCarousel={() => {
+          const templatePrompt = `Dado o seguinte briefing para criação de um carrossel, avalie a ideia, o gancho/título, o formato e o tema escolhido. Sugira melhorias na estrutura, no gancho e me dê ideias de como estruturar os slides e escrever a legenda (caption) perfeita para maximizar o engajamento:
+
+- **Título / Gancho:** 
+- **Tema:** 
+- **Formato:** 
+- **Pasta das artes:** 
+- **Legenda (Caption):** 
+- **Notas internas:** `;
+
+          setInitialChatPrompt(templatePrompt);
+          setActiveTab('criador');
+        }}
       />
 
       <div className="main-area">

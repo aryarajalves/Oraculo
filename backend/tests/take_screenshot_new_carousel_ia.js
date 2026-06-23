@@ -36,41 +36,14 @@ async function run() {
     await page.click('button[type="submit"]');
     await page.waitForTimeout(3000);
     
-    // 3. Abre o modal "+ Novo Carrossel"
-    console.log('➕ Abrindo modal de Novo Carrossel...');
+    // 3. Clica no botão "+ Novo Carrossel" no sidebar
+    console.log('➕ Clicando em "Novo Carrossel" no menu lateral...');
     await page.click('button:has-text("Novo Carrossel")');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000); // Aguarda troca de aba
 
-    // 4. Preenche os dados do carrossel
-    console.log('✍️ Preenchendo campos do formulário...');
-    await page.fill('input[placeholder="Ex: O que a física prova sobre dinheiro..."]', 'Como programar melhor com inteligência artificial');
-    await page.fill('input[placeholder="Ex: frequencia-dinheiro"]', 'ia-desenvolvimento');
-    await page.selectOption('select.form-select', 'B'); // Formato B
-    await page.fill('input[placeholder="C:/Users/julia/Desktop/nome-da-pasta"]', 'C:/Users/aryar/Desktop/ia-dev');
-    await page.fill('textarea[placeholder="Caption para publicar junto ao carrossel..."]', 'Aprenda as melhores dicas para trabalhar com IA de forma eficiente.');
-    await page.fill('textarea[placeholder="Observações, modelo usado, bolha A/B..."]', 'Usar tom direto e explicativo');
-
-    // Captura o modal aberto com os dados e o botão novo
-    console.log('📸 Salvando captura do modal preenchido...');
-    await page.screenshot({ path: path.join(ARTIFACT_DIR, 'new_carousel_modal_ia_btn.png') });
-
-    // 5. Clica no botão "Criar"
-    console.log('💬 Clicando em "Criar"...');
-    await page.click('.form-actions button:has-text("Criar")');
-    await page.waitForTimeout(2000); // Aguarda a troca de aba e preenchimento
-
-    // Captura o input preenchido no chat sem enviar
-    console.log('📸 Salvando captura do prompt preenchido no input...');
+    // Captura o input preenchido no chat com o template limpo
+    console.log('📸 Salvando captura do template preenchido no input...');
     await page.screenshot({ path: path.join(ARTIFACT_DIR, 'new_carousel_ia_input_prefilled.png') });
-
-    // 6. Clica em enviar no chat manualmente
-    console.log('📤 Clicando no botão de Enviar Chat...');
-    await page.click('.criador-send-btn');
-    await page.waitForTimeout(6000); // Aguarda resposta da IA
-
-    // Captura a tela do criador (chat) com a resposta da IA
-    console.log('📸 Salvando captura da resposta no chat...');
-    await page.screenshot({ path: path.join(ARTIFACT_DIR, 'new_carousel_ia_chat_response.png') });
 
     console.log('🎉 Teste visual concluído com sucesso!');
   } catch (error) {
