@@ -63,8 +63,8 @@ Certifique-se de ter o Docker e Docker Compose instalados em sua máquina.
 
 Para realizar login no dashboard em ambiente de desenvolvimento, utilize as seguintes credenciais padronizadas:
 
-* **E-mail de Login:** `aryarajmarketing@gmail.com`
-* **Senha:** `123456`
+* **E-mail de Login:** `admin@exemplo.com.br`
+* **Senha:** `senha_ficticia_123`
 
 ---
 
