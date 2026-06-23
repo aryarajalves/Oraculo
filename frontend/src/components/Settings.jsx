@@ -144,7 +144,7 @@ export default function Settings({ showToast }) {
         {Object.entries(groups).map(([groupName, keys]) => (
           <div className="key-group" key={groupName}>
             <div className="key-group-title">{groupName}</div>
-            {keys.map(k => (
+            {keys.filter(k => k.key !== 'ACTIVE_IMAGE_PROVIDER').map(k => (
               <div className="key-row" key={k.key}>
                 <div className="key-label">
                   <span className={`key-status ${k.set ? 'set' : ''}`}></span>
