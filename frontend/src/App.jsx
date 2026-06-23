@@ -13,6 +13,7 @@ import NewCarouselModal from './components/NewCarouselModal';
 import EditSlideModal from './components/EditSlideModal';
 import LiveGenPanel from './components/LiveGenPanel';
 import UsersManagement from './components/UsersManagement';
+import GenerationHistoryModal from './components/GenerationHistoryModal';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
@@ -52,6 +53,10 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastShow, setToastShow] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+
+  // Histórico de Geração
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyCarouselId, setHistoryCarouselId] = useState('');
   const [branding, setBranding] = useState({
     companyName: 'FONTE OCULTA',
     logoText: 'FONTE OCULTA',
@@ -159,6 +164,7 @@ export default function App() {
             visible: true,
             expanded: false
           });
+          loadCarousels();
         } else if (obj.type === 'slide') {
           setLiveSession(prev => {
             if (!prev) return prev;
@@ -369,6 +375,10 @@ export default function App() {
             }}
             onLoadCarousels={loadCarousels}
             showToast={showToast}
+            onOpenHistoryModal={(id) => {
+              setHistoryCarouselId(id);
+              setHistoryModalOpen(true);
+            }}
           />
         )}
 
@@ -443,6 +453,12 @@ export default function App() {
           setLightboxIndex(idx);
           setLightboxOpen(true);
         }}
+      />
+
+      <GenerationHistoryModal
+        isOpen={historyModalOpen}
+        onClose={() => { setHistoryModalOpen(false); loadCarousels(); }}
+        carouselId={historyCarouselId}
       />
 
       {logoutModalOpen && (

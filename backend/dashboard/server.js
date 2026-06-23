@@ -62,6 +62,20 @@ const REGEN_SCRIPT   = path.join(__dirname, "..", "regen-slide.py");
 const REELS_HISTORY_FILE = path.join(__dirname, "data", "reels_history.json");
 const ZIP_SCRIPT     = path.join(__dirname, "..", "zip-carousels.py");
 
+const generationJobs = new Map();
+
+function slugify(text) {
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -1787,9 +1801,57 @@ app.post('/api/criador/generate', async (req, res) => {
     return res.status(400).json({ error: 'slides é obrigatório' });
   }
 
+  // 1. Determina próximo ID antes de iniciar a geração para registrar o rascunho
+  let allCarousels = [];
+  try {
+    allCarousels = await readDataAsync();
+  } catch (err) {
+    console.error("Erro ao ler carrosséis para determinar ID:", err);
+  }
+  const nums = allCarousels.map(c => parseInt(c.id?.split('-').pop()) || 0).filter(Boolean);
+  const nextNum = nums.length ? Math.max(...nums) + 1 : 1;
+  const newId = `carrossel-${String(nextNum).padStart(2, '0')}`;
+
+  const slug = payload.title ? slugify(payload.title) : 'sem-titulo';
+  const outDir = process.platform === 'win32'
+    ? `C:/Users/julia/Desktop/carrossel-${slug}`
+    : `/tmp/carrossel-${slug}`;
+
+  // 2. Registra imediatamente o rascunho no banco de dados
+  const newCarousel = {
+    id:          newId,
+    title:       payload.title || 'Carrossel',
+    theme:       slug,
+    format:      payload.format || 'B',
+    status:      'rascunho',
+    createdAt:   new Date().toISOString().slice(0, 10),
+    slidesDir:   outDir,
+    slidePrefix: 'slide-',
+    totalSlides: payload.slides.length,
+    caption:     payload.caption || '',
+    notes:       payload.notes || '',
+    slides:      [],
+  };
+
+  allCarousels.push(newCarousel);
+  await writeDataAsync(allCarousels);
+
+  // 3. Inicializa o job de histórico na memória
+  generationJobs.set(newId, {
+    id: newId,
+    title: newCarousel.title,
+    status: 'generating',
+    logs: ['Iniciando pipeline de geração de imagens...'],
+    slides: [],
+    totalSlides: payload.slides.length
+  });
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+
+  // Envia ID inicial do carrossel registrado
+  res.write(`data: ${JSON.stringify({ type: 'start', carouselId: newId, total: payload.slides.length })}\n\n`);
 
   const PYTHON   = process.platform === 'win32' ? 'python' : 'python3';
   const PIPELINE = path.join(__dirname, '..', 'core', 'criador_pipeline.py');
@@ -1798,7 +1860,6 @@ app.post('/api/criador/generate', async (req, res) => {
     cwd: path.join(__dirname, '..'),
     env: {
       ...process.env,
-      // Raiz do projeto (para imports core.*) + python_packages (deps instalados via --target no Render)
       PYTHONPATH: [
         path.join(__dirname, '..'),
         path.join(__dirname, '..', 'python_packages'),
@@ -1807,11 +1868,15 @@ app.post('/api/criador/generate', async (req, res) => {
   });
 
   child.on('error', (err) => {
+    const job = generationJobs.get(newId);
+    if (job) {
+      job.status = 'failed';
+      job.logs.push(`Erro de spawn: ${err.message}`);
+    }
     res.write(`data: ${JSON.stringify({ type: 'error', msg: err.message })}\n\n`);
     res.end();
   });
 
-  // Produção: acumula slides gerados para upload B2 ao final
   const generatedFiles = []; // [{ num, estado, file }]
   let donePayload = null;
 
@@ -1825,14 +1890,37 @@ app.post('/api/criador/generate', async (req, res) => {
       if (!t) continue;
       try {
         const obj = JSON.parse(t);
-        // Em produção acumula para depois
+        const job = generationJobs.get(newId);
+        if (job) {
+          if (obj.type === 'slide') {
+            const sIdx = job.slides.findIndex(s => s.num === obj.num);
+            const slideData = {
+              num: obj.num,
+              estado: obj.estado,
+              status: obj.status,
+              filename: obj.file ? path.basename(obj.file) : `slide-${String(obj.num).padStart(2, '0')}.jpg`,
+              msg: obj.msg || ''
+            };
+            if (sIdx >= 0) job.slides[sIdx] = slideData;
+            else job.slides.push(slideData);
+            job.logs.push(`[Slide ${obj.num}/${obj.total}] Estado: ${obj.estado} -> ${obj.status === 'ok' ? 'Concluído' : obj.status === 'erro' ? 'Erro' : 'Gerando'}`);
+          } else if (obj.type === 'done') {
+            job.status = 'done';
+            job.logs.push(`Pipeline concluído. Sucesso em ${obj.total_ok}/${obj.total} slides.`);
+          } else if (obj.type === 'error') {
+            job.status = 'failed';
+            job.logs.push(`Erro no pipeline: ${obj.msg}`);
+          }
+        }
+
         if (IS_PROD && obj.type === 'slide' && obj.status === 'ok' && obj.file) {
           generatedFiles.push({ num: obj.num, estado: obj.estado, file: obj.file });
         }
         if (IS_PROD && obj.type === 'done') donePayload = obj;
         res.write(`data: ${JSON.stringify(obj)}\n\n`);
       } catch {
-        // linha de log não-JSON (ex: print() do Python)
+        const job = generationJobs.get(newId);
+        if (job) job.logs.push(t);
         res.write(`data: ${JSON.stringify({ type: 'log', msg: t })}\n\n`);
       }
     }
@@ -1840,14 +1928,34 @@ app.post('/api/criador/generate', async (req, res) => {
 
   child.stderr.on('data', (data) => {
     const msg = data.toString().trim();
-    if (msg) res.write(`data: ${JSON.stringify({ type: 'log', msg })}\n\n`);
+    if (msg) {
+      const job = generationJobs.get(newId);
+      if (job) job.logs.push(msg);
+      res.write(`data: ${JSON.stringify({ type: 'log', msg })}\n\n`);
+    }
   });
 
   child.on('close', async (code) => {
-    // Drena buffer residual
     if (buf.trim()) {
       try {
         const obj = JSON.parse(buf.trim());
+        const job = generationJobs.get(newId);
+        if (job) {
+          if (obj.type === 'slide') {
+            const sIdx = job.slides.findIndex(s => s.num === obj.num);
+            const slideData = {
+              num: obj.num,
+              estado: obj.estado,
+              status: obj.status,
+              filename: obj.file ? path.basename(obj.file) : `slide-${String(obj.num).padStart(2, '0')}.jpg`,
+              msg: obj.msg || ''
+            };
+            if (sIdx >= 0) job.slides[sIdx] = slideData;
+            else job.slides.push(slideData);
+          } else if (obj.type === 'done') {
+            job.status = 'done';
+          }
+        }
         if (IS_PROD && obj.type === 'slide' && obj.status === 'ok' && obj.file) {
           generatedFiles.push({ num: obj.num, estado: obj.estado, file: obj.file });
         }
@@ -1856,19 +1964,40 @@ app.post('/api/criador/generate', async (req, res) => {
       } catch {}
     }
 
+    const job = generationJobs.get(newId);
+    if (job) {
+      if (code !== 0 && job.status === 'generating') {
+        job.status = 'failed';
+      }
+      job.logs.push(`Processo finalizado com código ${code}`);
+    }
+
+    // Atualização local pós-processo
+    if (!IS_PROD) {
+      try {
+        const localCarousels = await readDataAsync();
+        const currentIdx = localCarousels.findIndex(c => c.id === newId);
+        if (currentIdx >= 0) {
+          const cRecord = localCarousels[currentIdx];
+          const slides = getSlidesForCarousel(cRecord);
+          localCarousels[currentIdx] = {
+            ...cRecord,
+            totalSlides: slides.length,
+            slides: slides,
+            status: code === 0 ? 'pronto' : 'rascunho'
+          };
+          await writeDataAsync(localCarousels);
+        }
+      } catch (err) {
+        console.error("Erro ao atualizar dados pós-geração local:", err);
+      }
+    }
+
     // ── Produção: upload para B2 + registro no carousels.json ────────────────
     if (IS_PROD && b2 && generatedFiles.length > 0 && donePayload) {
       try {
         res.write(`data: ${JSON.stringify({ type: 'log', msg: '☁ Enviando imagens para B2...' })}\n\n`);
 
-        // Determina próximo ID
-        let allCarousels = [];
-        try { allCarousels = await b2.readDataFromB2(); } catch {}
-        const nums   = allCarousels.map(c => parseInt(c.id?.split('-').pop()) || 0).filter(Boolean);
-        const nextNum = nums.length ? Math.max(...nums) + 1 : 1;
-        const newId   = `carrossel-${String(nextNum).padStart(2, '0')}`;
-
-        // Upload de cada slide
         const slideUrls = [];
         for (const { num, estado, file } of generatedFiles) {
           const filename = path.basename(file);
@@ -1879,34 +2008,28 @@ app.post('/api/criador/generate', async (req, res) => {
           } catch (err) {
             res.write(`data: ${JSON.stringify({ type: 'log', msg: `☁ ${filename} falhou: ${err.message}` })}\n\n`);
           }
-          // Remove arquivo temporário
           try { fs.unlinkSync(file); } catch {}
         }
-        // Remove pasta temporária
         try { fs.rmdirSync(donePayload.slides_dir); } catch {}
 
-        // Monta entrada e salva no B2
-        const entry = {
-          id:          newId,
-          title:       donePayload.title   || payload.title   || 'Carrossel',
-          theme:       donePayload.theme   || '',
-          format:      donePayload.format  || 'B',
-          status:      (donePayload.total_ok === donePayload.total) ? 'pronto' : 'rascunho',
-          createdAt:   new Date().toISOString().slice(0, 10),
-          slidesDir:   null,
-          slidePrefix: 'slide-',
-          totalSlides: slideUrls.length,
-          caption:     donePayload.caption || payload.caption || '',
-          notes:       donePayload.notes   || payload.notes   || '',
-          b2BaseUrl:   b2.b2ImageUrl(newId, ''),
-          slides:      slideUrls,
-        };
-        if (donePayload.revisor_score) entry.revisorScore = donePayload.revisor_score;
+        const prodCarousels = await readDataAsync();
+        const currentIdx = prodCarousels.findIndex(c => c.id === newId);
+        if (currentIdx >= 0) {
+          prodCarousels[currentIdx] = {
+            ...prodCarousels[currentIdx],
+            title:       donePayload.title   || payload.title   || 'Carrossel',
+            status:      (donePayload.total_ok === donePayload.total) ? 'pronto' : 'rascunho',
+            totalSlides: slideUrls.length,
+            caption:     donePayload.caption || payload.caption || '',
+            notes:       donePayload.notes   || payload.notes   || '',
+            b2BaseUrl:   b2.b2ImageUrl(newId, ''),
+            slides:      slideUrls,
+          };
+          if (donePayload.revisor_score) prodCarousels[currentIdx].revisorScore = donePayload.revisor_score;
+          await writeDataAsync(prodCarousels);
+        }
 
-        allCarousels.push(entry);
-        await b2.writeDataToB2(allCarousels);
-
-        res.write(`data: ${JSON.stringify({ type: 'registered', id: newId, entry })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'registered', id: newId, entry: prodCarousels[currentIdx] })}\n\n`);
         res.write(`data: ${JSON.stringify({ type: 'log', msg: `✓ ${newId} salvo no B2` })}\n\n`);
       } catch (err) {
         res.write(`data: ${JSON.stringify({ type: 'error', msg: `Upload B2 falhou: ${err.message}` })}\n\n`);
@@ -1916,6 +2039,21 @@ app.post('/api/criador/generate', async (req, res) => {
     res.write(`data: ${JSON.stringify({ type: 'close', code })}\n\n`);
     res.end();
   });
+});
+
+// ── API: Obter histórico de criação em tempo real ────────────────────────────
+app.get('/api/carousels/:id/history', (req, res) => {
+  const { id } = req.params;
+  const job = generationJobs.get(id);
+  if (!job) {
+    return res.json({
+      id,
+      status: 'done',
+      logs: ['Histórico de log em tempo real indisponível para este carrossel.'],
+      slides: []
+    });
+  }
+  res.json(job);
 });
 
 // ── API: Criador — Chat unificado com streaming SSE (gpt-5.4 / online only) ──

@@ -8,7 +8,8 @@ export default function Dashboard({
   onOpenLightbox,
   onOpenEditModal,
   onLoadCarousels,
-  showToast
+  showToast,
+  onOpenHistoryModal
 }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedCards, setExpandedCards] = useState({});
@@ -301,6 +302,15 @@ export default function Dashboard({
                     </select>
 
                     <div className="card-actions">
+                      {(c.status === 'rascunho' || c.status === 'pronto') && (
+                        <button
+                          className="btn btn-outline btn-sm"
+                          style={{ borderColor: 'var(--gold, #e0a96d)', color: 'var(--gold, #e0a96d)' }}
+                          onClick={(e) => { e.stopPropagation(); onOpenHistoryModal(c.id); }}
+                        >
+                          📋 Histórico
+                        </button>
+                      )}
                       <button
                         className="btn-instagram btn-sm"
                         disabled={c.status === 'publicado'}
