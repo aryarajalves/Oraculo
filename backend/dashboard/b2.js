@@ -8,7 +8,7 @@ import { Readable } from "stream";
 
 // ── Config ──────────────────────────────────────────────────────────────────
 const BUCKET      = process.env.B2_BUCKET_NAME    || "Publicacoes";
-const ENDPOINT    = process.env.B2_ENDPOINT       || "s3.us-east-005.backblazeb2.com";
+const ENDPOINT    = (process.env.B2_ENDPOINT || "s3.us-east-005.backblazeb2.com").replace(/^https?:\/\//i, "");
 const REGION      = "us-east-005";
 const KEY_ID      = process.env.B2_KEY_ID;
 const APP_KEY     = process.env.B2_APPLICATION_KEY;

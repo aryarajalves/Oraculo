@@ -18,7 +18,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // ── S3 Configuration ──────────────────────────────────────────────────────────
 const getS3Client = () => {
   const bucket = process.env.B2_BUCKET_NAME || "Publicacoes";
-  const endpoint = process.env.B2_ENDPOINT || "s3.us-east-005.backblazeb2.com";
+  const endpoint = (process.env.B2_ENDPOINT || "s3.us-east-005.backblazeb2.com").replace(/^https?:\/\//i, "");
   const keyId = process.env.B2_KEY_ID;
   const appKey = process.env.B2_APPLICATION_KEY;
 
@@ -267,7 +267,7 @@ export async function resetBackupScheduler() {
 // Retorna URL de download do backup
 export async function getBackupDownloadUrl(filename, s3Folder) {
   const { client, bucket } = getS3Client();
-  const endpoint = process.env.B2_ENDPOINT || "s3.us-east-005.backblazeb2.com";
+  const endpoint = (process.env.B2_ENDPOINT || "s3.us-east-005.backblazeb2.com").replace(/^https?:\/\//i, "");
   const key = `${s3Folder.replace(/\/$/, '')}/${filename}`;
   return `https://${bucket}.${endpoint}/${key}`;
 }
