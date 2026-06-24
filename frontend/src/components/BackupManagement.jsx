@@ -14,6 +14,10 @@ export default function BackupManagement({ showToast }) {
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Seleção e Exclusão em Massa
+  const [selectedBackups, setSelectedBackups] = useState([]);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+
   // Paginação e Exibição
   const [displayCount, setDisplayCount] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
@@ -179,6 +183,50 @@ export default function BackupManagement({ showToast }) {
       }
     } catch (e) {
       showToast('Erro de rede ao deletar backup.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSelectToggle = (filename) => {
+    setSelectedBackups(prev => 
+      prev.includes(filename) ? prev.filter(f => f !== filename) : [...prev, filename]
+    );
+  };
+
+  const handleSelectAllToggle = () => {
+    const currentPageFilenames = paginatedBackups.map(b => b.filename);
+    const allSelectedOnPage = currentPageFilenames.every(f => selectedBackups.includes(f));
+
+    if (allSelectedOnPage) {
+      setSelectedBackups(prev => prev.filter(f => !currentPageFilenames.includes(f)));
+    } else {
+      setSelectedBackups(prev => {
+        const union = new Set([...prev, ...currentPageFilenames]);
+        return Array.from(union);
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    setBulkDeleteModalOpen(false);
+    setActionLoading(true);
+    showToast(`⚙️ Excluindo ${selectedBackups.length} backup(s)...`);
+    try {
+      const res = await fetch('/api/backups/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filenames: selectedBackups })
+      });
+      if (res.ok) {
+        showToast('✓ Backups excluídos com sucesso do S3.');
+        setSelectedBackups([]);
+        loadBackups();
+      } else {
+        showToast('Falha ao excluir backups em massa.');
+      }
+    } catch (e) {
+      showToast('Erro de rede ao excluir backups.');
     } finally {
       setActionLoading(false);
     }
@@ -428,12 +476,49 @@ export default function BackupManagement({ showToast }) {
         {/* Painel 4: Lista de Backups */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {backups.length > 0 && (
+                <input 
+                  type="checkbox"
+                  checked={paginatedBackups.length > 0 && paginatedBackups.every(b => selectedBackups.includes(b.filename))}
+                  onChange={handleSelectAllToggle}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    cursor: 'pointer',
+                    accentColor: 'var(--gold)',
+                    margin: 0
+                  }}
+                />
+              )}
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
               Backups no S3 ({backups.length})
             </div>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {selectedBackups.length > 0 && (
+                <button
+                  onClick={() => setBulkDeleteModalOpen(true)}
+                  className="btn"
+                  style={{
+                    background: '#ef4444',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'opacity 0.2s'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                  Excluir Selecionados ({selectedBackups.length})
+                </button>
+              )}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-3)' }}>
                 <span>Exibir:</span>
                 <select
@@ -496,6 +581,18 @@ export default function BackupManagement({ showToast }) {
                   className="backup-row"
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                    <input 
+                      type="checkbox"
+                      checked={selectedBackups.includes(log.filename)}
+                      onChange={() => handleSelectToggle(log.filename)}
+                      style={{
+                        width: '15px',
+                        height: '15px',
+                        cursor: 'pointer',
+                        accentColor: 'var(--gold)',
+                        flexShrink: 0
+                      }}
+                    />
                     <span 
                       style={{ 
                         width: '8px', 
@@ -641,6 +738,27 @@ export default function BackupManagement({ showToast }) {
               </button>
               <button className="btn btn-danger" onClick={handleDelete} disabled={actionLoading} style={{ flex: 1, fontWeight: '600' }}>
                 Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal: Confirmar Exclusão em Massa */}
+      {bulkDeleteModalOpen && (
+        <div className="form-modal open" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.75)' }}>
+          <div className="form-box" style={{ maxWidth: '400px', width: '100%', textAlign: 'center', padding: '30px' }}>
+            <div style={{ fontSize: '32px', marginBottom: '16px' }}>🗑️</div>
+            <div className="form-title" style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', letterSpacing: '0.05em' }}>CONFIRMAR EXCLUSÃO</div>
+            <div className="settings-group-sub" style={{ marginBottom: '24px', fontSize: '13px', color: 'var(--text-3)' }}>
+              Tem certeza que deseja excluir permanentemente os <strong style={{ color: 'var(--text)' }}>{selectedBackups.length}</strong> backups selecionados do armazenamento Backblaze S3?
+            </div>
+            <div className="form-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button className="btn btn-outline" onClick={() => setBulkDeleteModalOpen(false)} style={{ flex: 1 }}>
+                Cancelar
+              </button>
+              <button className="btn btn-danger" onClick={handleBulkDelete} disabled={actionLoading} style={{ flex: 1, fontWeight: '600' }}>
+                Excluir todos
               </button>
             </div>
           </div>

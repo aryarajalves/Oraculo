@@ -85,6 +85,19 @@ class TestBackups(unittest.TestCase):
             backup_list = json.loads(resp.read().decode("utf-8"))
             self.assertTrue(isinstance(backup_list, list))
 
+        # 5. Testa o endpoint de exclusão em massa (bulk-delete) com lista vazia (deve falhar com 400)
+        req_bulk_fail = urllib.request.Request(
+            "http://localhost:3131/api/backups/bulk-delete",
+            data=json.dumps({"filenames": []}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        try:
+            with self.super_opener.open(req_bulk_fail, timeout=5) as resp:
+                self.assertEqual(resp.status, 400)
+        except urllib.error.HTTPError as e:
+            self.assertEqual(e.code, 400)
+
         print("[OK] Teste de backup endpoints passou com sucesso!")
 
 if __name__ == "__main__":

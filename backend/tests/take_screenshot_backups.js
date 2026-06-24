@@ -46,6 +46,16 @@ async function run() {
     console.log('📸 Capturando aba de Backups com Toast...');
     await page.screenshot({ path: path.join(ARTIFACT_DIR, 'backups_tab_toast.png') });
 
+    // Seleciona o primeiro checkbox da lista de backups para validar a seleção em massa
+    console.log('☑️ Selecionando o primeiro backup da lista...');
+    const firstCheckbox = await page.locator('.backup-row input[type="checkbox"]').first();
+    if (await firstCheckbox.count() > 0) {
+      await firstCheckbox.click();
+      await page.waitForTimeout(500);
+      console.log('📸 Capturando aba de Backups com seleção e botão de exclusão ativo...');
+      await page.screenshot({ path: path.join(ARTIFACT_DIR, 'backups_tab_selected.png') });
+    }
+
     console.log('🎉 Capturas visuais criadas com sucesso na pasta de artefatos!');
 
   } catch (error) {

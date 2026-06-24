@@ -161,6 +161,29 @@ router.post('/api/backups/restore/:filename', async (req, res) => {
   }
 });
 
+// ── POST /api/backups/bulk-delete ─────────────────────────────────────────────
+router.post('/api/backups/bulk-delete', async (req, res) => {
+  const { filenames } = req.body;
+  if (!Array.isArray(filenames) || filenames.length === 0) {
+    return res.status(400).json({ error: "Lista de arquivos inválida ou vazia" });
+  }
+
+  try {
+    let s3Folder = 'backups/';
+    const configRes = await query("SELECT s3_folder FROM backup_config WHERE id = 1");
+    if (configRes.rows.length > 0) {
+      s3Folder = configRes.rows[0].s3_folder;
+    }
+
+    for (const filename of filenames) {
+      await deleteBackup(filename, s3Folder);
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── DELETE /api/backups/:filename ────────────────────────────────────────────
 router.delete('/api/backups/:filename', async (req, res) => {
   const { filename } = req.params;
