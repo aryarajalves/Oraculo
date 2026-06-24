@@ -98,6 +98,23 @@ class TestBackups(unittest.TestCase):
         except urllib.error.HTTPError as e:
             self.assertEqual(e.code, 400)
 
+        # Restaura a configuração original para não sujar o banco de dados do desenvolvedor
+        restore_payload = json.dumps({
+            "enabled": config["enabled"],
+            "frequency": config["frequency"],
+            "interval_val": config["interval_val"],
+            "s3_folder": config["s3_folder"],
+            "retention": config["retention"]
+        }).encode("utf-8")
+        req_restore = urllib.request.Request(
+            self.config_url,
+            data=restore_payload,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with self.super_opener.open(req_restore, timeout=5) as resp:
+            self.assertEqual(resp.status, 200)
+
         print("[OK] Teste de backup endpoints passou com sucesso!")
 
 if __name__ == "__main__":
