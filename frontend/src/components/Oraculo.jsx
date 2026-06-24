@@ -110,6 +110,25 @@ export default function Oraculo({ showToast }) {
           </div>
         ) : (
           <div>
+            <style>{`
+              .oraculo-table th, .oraculo-table td {
+                padding: 16px 20px !important;
+              }
+              .oraculo-caption {
+                max-width: 450px !important;
+                white-space: normal !important;
+                word-wrap: break-word !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
+                line-height: 1.6 !important;
+              }
+              .oraculo-table tbody tr {
+                border-bottom: 1px solid var(--border) !important;
+              }
+              .oraculo-table-wrap {
+                padding-bottom: 60px !important;
+              }
+            `}</style>
             <table className="oraculo-table">
               <thead>
                 <tr>

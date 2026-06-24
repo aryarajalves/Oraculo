@@ -1,6 +1,6 @@
 // dashboard/server.js — Fonte Oculta Content Dashboard MVP
 import express from "express";
-import cookieSession from "cookie-session";
+import cors from "cors";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -13,7 +13,8 @@ import {
   IS_PROD, 
   PUBLIC_DIR, 
   sseClients, 
-  requireAuth 
+  requireAuth,
+  rateLimiter
 } from "./state.js";
 
 import authRouter from "./routes/auth.js";
@@ -52,21 +53,40 @@ const PORT = process.env.PORT || 3131;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Necessário para cookies funcionarem atrás do proxy do Render/Heroku
+// Necessário para obter IPs reais atrás de um proxy reverso
 app.set('trust proxy', 1);
 
-// ── Sessão (cookie-session) ──────────────────────────────────────────────────
-app.use(cookieSession({
-  name:   'fo_sess',
-  keys:   [process.env.SESSION_SECRET || 'fonte-oculta-secret-change-in-prod'],
-  secure: process.env.NODE_ENV === 'production',
-  httpOnly: true,
-  sameSite: 'lax',
-  maxAge: 1000 * 60 * 60 * 24 * 30, // 30 dias
+// Configura CORS baseado na variável de ambiente
+const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
+  ? process.env.CORS_ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : [];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Se não houver origin (como apps mobile ou curl) ou se as allowedOrigins estiverem vazias, permite
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Bloqueado pelo CORS'));
+    }
+  },
+  credentials: true
 }));
 
 // Apply global authentication check
 app.use(requireAuth);
+
+// ── Rate Limiting por segmento de rota ──────────────────────────────────────────
+// 1. Auth/Login: 10 requisições por minuto
+app.use('/auth', rateLimiter(10, 60000));
+
+// 2. Geração e Backups (carousels, services, backups): 30 requisições por minuto
+app.use('/api/carousels', rateLimiter(30, 60000));
+app.use('/api/services', rateLimiter(30, 60000));
+app.use('/api/backups', rateLimiter(30, 60000));
+
+// 3. Outras rotas gerais do dashboard (ex: users, etc): 60 requisições por minuto
+app.use('/api/users', rateLimiter(60, 60000));
 
 // ── Register Routers ─────────────────────────────────────────────────────────
 app.use(authRouter);

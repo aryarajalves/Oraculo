@@ -2,6 +2,24 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "fonte-oculta-secret-key-change-in-prod";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "24h";
+
+// Gera um token JWT contendo payload do usuário
+export function generateToken(payload) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+}
+
+// Verifica e decodifica o token JWT
+export function verifyToken(token) {
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    return null;
+  }
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -66,15 +84,60 @@ export function requireAuth(req, res, next) {
     return next();
   }
 
-  if (req.session && req.session.authenticated) return next();
-  if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Não autenticado' });
-  return res.redirect('/login.html');
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Não autenticado' });
+    return res.redirect('/login.html');
+  }
+
+  const token = authHeader.split(' ')[1];
+  const decoded = verifyToken(token);
+
+  if (!decoded) {
+    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Token inválido ou expirado' });
+    return res.redirect('/login.html');
+  }
+
+  req.user = decoded;
+  return next();
 }
 
 // Middleware para restringir rotas apenas ao Super Admin
 export function requireSuperAdmin(req, res, next) {
-  if (req.session && req.session.authenticated && isUserSuperAdmin(req.session.user)) {
+  if (req.user && isUserSuperAdmin(req.user.email)) {
     return next();
   }
   return res.status(403).json({ error: 'Acesso negado. Apenas o Super Admin tem acesso.' });
+}
+
+// Memória para armazenar tentativas e limites de Rate Limit
+const rateLimitsMap = new Map();
+
+// Middleware de Rate Limit paramétrico
+export function rateLimiter(maxRequests, windowMs) {
+  return (req, res, next) => {
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const now = Date.now();
+    const key = `${ip}:${req.baseUrl || req.path}`;
+
+    if (!rateLimitsMap.has(key)) {
+      rateLimitsMap.set(key, { count: 1, resetTime: now + windowMs });
+      return next();
+    }
+
+    const limit = rateLimitsMap.get(key);
+
+    if (now > limit.resetTime) {
+      limit.count = 1;
+      limit.resetTime = now + windowMs;
+      return next();
+    }
+
+    limit.count++;
+    if (limit.count > maxRequests) {
+      return res.status(429).json({ error: 'Muitas requisições. Tente novamente mais tarde.' });
+    }
+
+    return next();
+  };
 }

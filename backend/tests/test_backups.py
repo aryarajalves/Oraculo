@@ -16,32 +16,35 @@ class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
 
 class TestBackups(unittest.TestCase):
     def setUp(self):
-        self.cookie_jar = http.cookiejar.CookieJar()
-        self.super_opener = urllib.request.build_opener(
-            urllib.request.HTTPCookieProcessor(self.cookie_jar),
-            NoRedirectHandler()
-        )
+        self.super_opener = urllib.request.build_opener(NoRedirectHandler())
         self.login_url = "http://localhost:3131/auth/login"
         self.config_url = "http://localhost:3131/api/backups/config"
         self.list_url = "http://localhost:3131/api/backups/list"
 
-        # Login como Super Admin
-        login_data = urllib.parse.urlencode({
+        # Login via JSON JWT payload
+        login_data = json.dumps({
             "username": "aryarajmarketing@gmail.com",
             "password": "123456"
         }).encode("utf-8")
         login_req = urllib.request.Request(
             self.login_url, 
             data=login_data, 
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            headers={"Content-Type": "application/json"},
             method="POST"
         )
         with self.super_opener.open(login_req, timeout=5) as resp:
-            self.assertEqual(resp.status, 302)
+            self.assertEqual(resp.status, 200)
+            res_json = json.loads(resp.read().decode("utf-8"))
+            self.assertIn("token", res_json)
+            self.token = res_json["token"]
+            self.auth_headers = {
+                "Authorization": f"Bearer {self.token}",
+                "Content-Type": "application/json"
+            }
 
     def test_backup_endpoints(self):
         # 1. Carrega a configuração padrão de backup
-        req_config = urllib.request.Request(self.config_url, method="GET")
+        req_config = urllib.request.Request(self.config_url, headers=self.auth_headers, method="GET")
         with self.super_opener.open(req_config, timeout=5) as resp:
             self.assertEqual(resp.status, 200)
             config = json.loads(resp.read().decode("utf-8"))
@@ -60,7 +63,7 @@ class TestBackups(unittest.TestCase):
         req_update = urllib.request.Request(
             self.config_url,
             data=update_payload,
-            headers={"Content-Type": "application/json"},
+            headers=self.auth_headers,
             method="POST"
         )
         with self.super_opener.open(req_update, timeout=5) as resp:
@@ -79,7 +82,7 @@ class TestBackups(unittest.TestCase):
             self.assertEqual(config["retention"], 10)
 
         # 4. Verifica a listagem de logs de backup
-        req_list = urllib.request.Request(self.list_url, method="GET")
+        req_list = urllib.request.Request(self.list_url, headers=self.auth_headers, method="GET")
         with self.super_opener.open(req_list, timeout=5) as resp:
             self.assertEqual(resp.status, 200)
             backup_list = json.loads(resp.read().decode("utf-8"))
@@ -89,7 +92,7 @@ class TestBackups(unittest.TestCase):
         req_bulk_fail = urllib.request.Request(
             "http://localhost:3131/api/backups/bulk-delete",
             data=json.dumps({"filenames": []}).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            headers=self.auth_headers,
             method="POST"
         )
         try:
@@ -109,7 +112,7 @@ class TestBackups(unittest.TestCase):
         req_restore = urllib.request.Request(
             self.config_url,
             data=restore_payload,
-            headers={"Content-Type": "application/json"},
+            headers=self.auth_headers,
             method="POST"
         )
         with self.super_opener.open(req_restore, timeout=5) as resp:

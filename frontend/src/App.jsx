@@ -77,12 +77,58 @@ export default function App() {
   });
   const [currentUser, setCurrentUser] = useState(null);
 
+  // Guarda uma referência para o fetch nativo original para evitar recursividade infinita
+  const originalFetch = window.fetch;
+
+  // Sobrescreve chamadas de fetch locais para injetar cabeçalho JWT e tratar 401
+  const customFetch = async (url, options = {}) => {
+    const token = localStorage.getItem('fo_token');
+    const headers = { ...options.headers };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const opt = { ...options, headers };
+    
+    try {
+      const response = await originalFetch(url, opt);
+      if (response.status === 401) {
+        localStorage.removeItem('fo_token');
+        window.location.href = '/login.html';
+        return new Promise(() => {}); // Retorna uma promessa pendente para interromper fluxo
+      }
+      return response;
+    } catch (e) {
+      throw e;
+    }
+  };
+
+  // Expõe no objeto window sobrescrevendo o fetch padrão para os componentes
+  window.fetch = customFetch;
+
+  const [initialLoading, setInitialLoading] = useState(true);
+
   useEffect(() => {
-    loadCarousels();
-    loadStats();
-    setupSSE();
-    loadBranding();
-    loadCurrentUser();
+    const initApp = async () => {
+      try {
+        // Executa todas as chamadas iniciais simultaneamente para evitar piscar de tela
+        await Promise.all([
+          loadCurrentUser(),
+          loadBranding(),
+          loadCarousels(),
+          loadStats()
+        ]);
+        setupSSE();
+      } catch (err) {
+        console.error("Erro na inicialização do painel:", err);
+      } finally {
+        // Timeout curto e elegante para dar suavidade na transição
+        setTimeout(() => {
+          setInitialLoading(false);
+        }, 600);
+      }
+    };
+
+    initApp();
 
     const handleShowLogout = () => setLogoutModalOpen(true);
     window.addEventListener('show-logout-modal', handleShowLogout);
@@ -93,18 +139,16 @@ export default function App() {
 
   const loadCurrentUser = async () => {
     try {
-      const res = await fetch('/api/me');
-      if (res.status === 401) {
-        window.location.href = '/login.html';
-        return;
-      }
+      const res = await customFetch('/api/me');
       const data = await res.json();
       if (res.ok) {
         setCurrentUser(data);
       } else {
+        localStorage.removeItem('fo_token');
         window.location.href = '/login.html';
       }
     } catch (e) {
+      localStorage.removeItem('fo_token');
       window.location.href = '/login.html';
     }
   };
@@ -119,7 +163,7 @@ export default function App() {
 
   const loadBranding = async () => {
     try {
-      const res = await fetch('/api/settings/branding');
+      const res = await customFetch('/api/settings/branding');
       const data = await res.json();
       if (data) setBranding(data);
     } catch (e) {}
@@ -133,11 +177,7 @@ export default function App() {
 
   const loadCarousels = async () => {
     try {
-      const res = await fetch('/api/carousels');
-      if (res.status === 401) {
-        window.location.href = '/login.html';
-        return;
-      }
+      const res = await customFetch('/api/carousels');
       const data = await res.json();
       if (res.ok) {
         setAllCarousels(data);
@@ -149,8 +189,7 @@ export default function App() {
 
   const loadStats = async () => {
     try {
-      const res = await fetch('/api/stats');
-      if (res.status === 401) return;
+      const res = await customFetch('/api/stats');
       const data = await res.json();
       if (res.ok) {
         setStats(data);
@@ -161,7 +200,10 @@ export default function App() {
   };
 
   const setupSSE = () => {
-    const eventSource = new EventSource('/api/events');
+    const token = localStorage.getItem('fo_token');
+    // Para SSE passamos o token via query param se necessário, ou deixamos a rota de SSE pública ou autenticada por token via query
+    const url = token ? `/api/events?token=${encodeURIComponent(token)}` : '/api/events';
+    const eventSource = new EventSource(url);
     eventSource.onmessage = function(event) {
       try {
         const obj = JSON.parse(event.data);
@@ -204,7 +246,7 @@ export default function App() {
 
   const handleCreateCarousel = async (payload) => {
     try {
-      const res = await fetch('/api/carousels', {
+      const res = await customFetch('/api/carousels', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -227,7 +269,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch('/api/criador/generate', {
+      const res = await customFetch('/api/criador/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -249,6 +291,41 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      {initialLoading && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: '#09090b',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'opacity 0.5s ease',
+        }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid rgba(201, 168, 76, 0.15)',
+            borderTopColor: '#C9A84C',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+            marginBottom: '20px'
+          }} />
+          <div style={{
+            fontSize: '11px',
+            color: 'rgba(237, 232, 223, 0.4)',
+            letterSpacing: '3px',
+            textTransform: 'uppercase',
+            fontFamily: 'sans-serif'
+          }}>
+            Carregando Estúdio...
+          </div>
+        </div>
+      )}
       <style>{`
         .brand-name {
           font-size: ${formatSize(branding.logoSize)} !important;
@@ -407,9 +484,19 @@ export default function App() {
               <button className="btn btn-outline" onClick={() => setLogoutModalOpen(false)} style={{ flex: 1 }}>
                 Voltar
               </button>
-              <a href="/auth/logout" className="btn btn-gold" style={{ flex: 1, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600' }}>
+              <button 
+                className="btn btn-gold" 
+                style={{ flex: 1, fontWeight: '600', cursor: 'pointer' }}
+                onClick={async () => {
+                  try {
+                    await fetch('/auth/logout');
+                  } catch (e) {}
+                  localStorage.removeItem('fo_token');
+                  window.location.href = '/login.html';
+                }}
+              >
                 Sair
-              </a>
+              </button>
             </div>
           </div>
         </div>

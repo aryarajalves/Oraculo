@@ -16,7 +16,7 @@ export default function Radar({ showToast }) {
   const loadRadar = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/radar');
+      const res = await window.customFetch('/api/radar');
       const data = await res.json();
       setRadarData(data);
       setCurrentPage(1);
@@ -30,7 +30,7 @@ export default function Radar({ showToast }) {
   const syncRadar = async () => {
     setSyncing(true);
     try {
-      const res = await fetch('/api/radar/sync', { method: 'POST' });
+      const res = await window.customFetch('/api/radar/sync', { method: 'POST' });
       const data = await res.json();
       if (data.ok) {
         showToast('Radar atualizado com sucesso!');

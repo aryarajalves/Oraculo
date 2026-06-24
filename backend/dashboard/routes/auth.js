@@ -3,7 +3,8 @@ import { query } from "../db.js";
 import { 
   hashPassword, 
   getSuperAdminEmail, 
-  isUserSuperAdmin 
+  isUserSuperAdmin,
+  generateToken
 } from "../state.js";
 
 const router = express.Router();
@@ -21,11 +22,22 @@ router.post('/auth/login', async (req, res) => {
                   (username === 'afonteoculta' && password === (process.env.DASHBOARD_PASS2 || 'FonteOculta@2025'));
 
   if (isSuper) {
-    req.session.authenticated = true;
-    req.session.user = username;
-    req.session.userName = 'Super Admin';
-    req.session.role = 'admin';
-    return res.redirect('/');
+    const payload = {
+      user: username,
+      userName: 'Super Admin',
+      email: username,
+      role: 'admin'
+    };
+    const token = generateToken(payload);
+    return res.json({
+      token,
+      user: {
+        name: 'Super Admin',
+        email: username,
+        role: 'admin',
+        isSuperAdmin: true
+      }
+    });
   }
 
   // 2. Verifica contra o banco de dados (tabela dashboard_users)
@@ -38,30 +50,41 @@ router.post('/auth/login', async (req, res) => {
 
     if (dbUserRes.rows.length > 0) {
       const u = dbUserRes.rows[0];
-      req.session.authenticated = true;
-      req.session.user = u.email;
-      req.session.userName = u.name;
-      req.session.role = u.role;
-      return res.redirect('/');
+      const payload = {
+        user: u.email,
+        userName: u.name,
+        email: u.email,
+        role: u.role
+      };
+      const token = generateToken(payload);
+      return res.json({
+        token,
+        user: {
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          isSuperAdmin: false
+        }
+      });
     }
   } catch (err) {
     console.error("Erro ao validar login no banco:", err);
   }
 
-  return res.redirect('/login.html?error=1');
+  return res.status(401).json({ detail: "Usuário ou senha incorretos." });
 });
 
 router.get('/auth/logout', (req, res) => {
-  req.session = null; // cookie-session: limpa setando null
-  res.redirect('/login.html');
+  res.json({ success: true, message: "Desconectado com sucesso. Remova o token localmente." });
 });
 
 // Obter usuário atual logado
 router.get('/api/me', async (req, res) => {
-  if (!req.session || !req.session.authenticated) {
+  if (!req.user) {
     return res.status(401).json({ error: 'Não autenticado' });
   }
-  const isSuper = isUserSuperAdmin(req.session.user);
+  const email = req.user.email || req.user.user;
+  const isSuper = isUserSuperAdmin(email);
   
   let permissions = {};
   if (isSuper) {
@@ -76,7 +99,7 @@ router.get('/api/me', async (req, res) => {
     };
   } else {
     try {
-      const dbUserRes = await query("SELECT permissions FROM dashboard_users WHERE email = $1", [req.session.user]);
+      const dbUserRes = await query("SELECT permissions FROM dashboard_users WHERE email = $1", [email]);
       if (dbUserRes.rows.length > 0) {
         permissions = dbUserRes.rows[0].permissions || {};
       }
@@ -86,10 +109,10 @@ router.get('/api/me', async (req, res) => {
   }
 
   res.json({
-    name: isSuper ? (process.env.DASHBOARD_USER_NAME || 'Super Admin') : (req.session.userName || req.session.user),
-    email: req.session.user,
+    name: isSuper ? (process.env.DASHBOARD_USER_NAME || 'Super Admin') : (req.user.userName || email),
+    email: email,
     isSuperAdmin: isSuper,
-    role: isSuper ? 'admin' : (req.session.role || 'user'),
+    role: isSuper ? 'admin' : (req.user.role || 'user'),
     permissions
   });
 });
