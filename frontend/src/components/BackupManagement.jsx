@@ -203,6 +203,32 @@ export default function BackupManagement({ showToast }) {
   const totalPages = Math.ceil(backups.length / displayCount) || 1;
   const paginatedBackups = backups.slice((currentPage - 1) * displayCount, currentPage * displayCount);
 
+  // Informações de status dos Cards
+  const successBackups = backups.filter(b => b.status === 'success');
+  const lastSuccessBackup = successBackups[0];
+
+  const lastBackupFilename = lastSuccessBackup ? lastSuccessBackup.filename : 'Nenhum backup realizado';
+  const lastBackupTime = lastSuccessBackup ? new Date(lastSuccessBackup.created_at).toLocaleString('pt-BR') : '';
+
+  let nextBackupTime = 'Agendamento desativado';
+  let nextBackupSub = `A cada ${config.interval_val || 6} ${getFreqLabel(config.frequency, config.interval_val || 6)}`;
+
+  if (config.enabled) {
+    const lastTime = lastSuccessBackup ? new Date(lastSuccessBackup.created_at) : new Date(config.updated_at || Date.now());
+    let intervalMs = 0;
+    const value = config.interval_val || 6;
+    if (config.frequency === 'minutes') {
+      intervalMs = value * 60 * 1000;
+    } else if (config.frequency === 'hours') {
+      intervalMs = value * 60 * 60 * 1000;
+    } else if (config.frequency === 'days') {
+      intervalMs = value * 24 * 60 * 60 * 1000;
+    }
+    const nextDate = new Date(lastTime.getTime() + intervalMs);
+    nextBackupTime = nextDate.toLocaleString('pt-BR');
+    nextBackupSub = `A cada ${value} ${getFreqLabel(config.frequency, value)}(s)`;
+  }
+
   return (
     <div style={{ paddingBottom: '40px' }}>
       <div className="oraculo-header">
@@ -213,6 +239,47 @@ export default function BackupManagement({ showToast }) {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '0 16px' }}>
+        
+        {/* Cards de Status (Último, Próximo e Retenção) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+          
+          {/* Card 1: Último Backup */}
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', display: 'flex', gap: '15px', alignItems: 'center' }}>
+            <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', color: '#10b981', borderRadius: '8px', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '40px' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', color: 'var(--text-3)', fontWeight: '700', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '4px' }}>Último Backup</div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text)', wordBreak: 'break-all' }}>{lastBackupFilename}</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '2px' }}>{lastBackupTime}</div>
+            </div>
+          </div>
+
+          {/* Card 2: Próximo Backup */}
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', display: 'flex', gap: '15px', alignItems: 'center' }}>
+            <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: '#3b82f6', borderRadius: '8px', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '40px' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', color: 'var(--text-3)', fontWeight: '700', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '4px' }}>Próximo Backup</div>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text)' }}>{nextBackupTime}</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '2px' }}>{nextBackupSub}</div>
+            </div>
+          </div>
+
+          {/* Card 3: Retenção */}
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', display: 'flex', gap: '15px', alignItems: 'center' }}>
+            <div style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.2)', color: '#8b5cf6', borderRadius: '8px', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '40px' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', color: 'var(--text-3)', fontWeight: '700', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '4px' }}>Retenção</div>
+              <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text)' }}>{config.retention}</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '2px' }}>backups mantidos no S3</div>
+            </div>
+          </div>
+
+        </div>
         
         {/* Painel 1: Backup Manual */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
