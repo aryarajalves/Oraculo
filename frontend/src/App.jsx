@@ -20,8 +20,9 @@ import { parseCarouselText } from './utils/carouselParser';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
-    // Se o usuário veio da página de login, forçamos 'carrosseis'
-    if (document.referrer && document.referrer.includes('login.html')) {
+    // Se o usuário veio da página de login, forçamos 'carrosseis' apenas no primeiro carregamento
+    if (document.referrer && document.referrer.includes('login.html') && !sessionStorage.getItem('loginHandled')) {
+      sessionStorage.setItem('loginHandled', 'true');
       localStorage.setItem('activeTab', 'carrosseis');
       return 'carrosseis';
     }
