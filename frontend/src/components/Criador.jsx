@@ -40,10 +40,11 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
 
     let fullText = '';
     try {
+      const chatHistory = messages.filter(m => m.role !== 'form');
       const res = await fetch('/api/criador/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, { role: 'user', content: text }] }),
+        body: JSON.stringify({ messages: [...chatHistory, { role: 'user', content: text }] }),
       });
 
       if (!res.ok) {
@@ -120,7 +121,8 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
 
     let fullText = '';
     try {
-      const history = [...messages, { role: 'user', content: actualAIPrompt }];
+      const chatHistory = messages.filter(m => m.role !== 'form');
+      const history = [...chatHistory, { role: 'user', content: actualAIPrompt }];
 
       const res = await fetch('/api/criador/stream', {
         method: 'POST',
