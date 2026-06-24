@@ -100,6 +100,8 @@ services:
       # Origens de CORS aceitas no backend
       - CORS_ALLOWED_ORIGINS=
 
+    volumes:
+      - oraculo_data:/app/backend/data
     deploy:
       mode: replicated
       replicas: 1
@@ -130,3 +132,7 @@ networks:
   network_swarm_public:
     name: network_swarm_public
     external: true
+
+volumes:
+  oraculo_data:
+    driver: local
