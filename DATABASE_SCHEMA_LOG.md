@@ -89,3 +89,49 @@ Adicionar persistência para suporte a múltiplos usuários no dashboard, permit
    ```bash
    docker exec oraculo_backend node backend/dashboard/scripts/migrate_users.js
    ```
+
+---
+
+## [2026-06-24] Adição do Histórico de Chat aos Carrosséis
+
+### Motivação
+Permitir a persistência e visualização da conversa de chat do Criador em que o carrossel foi construído.
+
+### Alterações de Tabela
+- **`carousels`**
+  - Nova coluna: `chat_history` JSONB (armazena o histórico de mensagens em formato estruturado)
+
+### Scripts de Migração
+- **Script de Migração:** `backend/dashboard/scripts/migrate_chat_history.js`
+  - *Função:* Adiciona a coluna `chat_history` à tabela `carousels` caso ainda não exista.
+
+### Instruções para Deploy
+1. Executar o script de migração no container:
+   ```bash
+   docker exec oraculo_backend node backend/dashboard/scripts/migrate_chat_history.js
+   ```
+
+---
+
+## [2026-06-24] Adição de Permissões por Página para Usuários e Convites
+
+### Motivação
+Permitir o controle detalhado de acesso por página (Liberado, Em Progresso, Sem Acesso) para os usuários e os convites temporários.
+
+### Alterações de Tabela
+- **`dashboard_users`**
+  - Nova coluna: `permissions` JSONB DEFAULT '{}'::jsonb (Armazena dicionário de acesso a páginas)
+- **`invitations`**
+  - Nova coluna: `permissions` JSONB DEFAULT '{}'::jsonb (Armazena dicionário de acesso a páginas no convite)
+
+### Scripts de Migração
+- **Script de Migração:** `backend/dashboard/scripts/migrate_permissions.js`
+  - *Função:* Adiciona a coluna `permissions` às tabelas `dashboard_users` e `invitations` caso ainda não existam.
+
+### Instruções para Deploy
+1. Executar o script de migração no container:
+   ```bash
+   docker exec oraculo_backend node backend/dashboard/scripts/migrate_permissions.js
+   ```
+
+

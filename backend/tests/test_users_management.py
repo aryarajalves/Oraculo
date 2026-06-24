@@ -54,10 +54,16 @@ class TestUsersManagement(unittest.TestCase):
             self.assertEqual(users[0]["id"], "super-admin")
             self.assertTrue(users[0]["isSuperAdmin"])
 
-        # 2. Super Admin cria um convite para "user" com duração de 24 horas
+        # 2. Super Admin cria um convite para "user" com duração de 24 horas e permissões personalizadas
         invite_payload = json.dumps({
             "role": "user",
-            "hours": 24
+            "hours": 24,
+            "permissions": {
+                "carrosseis": "liberado",
+                "criador": "em_breve",
+                "criador_pct": 75,
+                "radar": "bloqueado"
+            }
         }).encode("utf-8")
         req_invite = urllib.request.Request(
             self.invites_url,
@@ -126,7 +132,7 @@ class TestUsersManagement(unittest.TestCase):
         with user_opener.open(user_login_req, timeout=5) as resp:
             self.assertEqual(resp.status, 302)
 
-        # 7. Novo colaborador chama /api/me e verifica que seu cargo é "user"
+        # 7. Novo colaborador chama /api/me e verifica que seu cargo é "user" e possui as permissões herdadas do convite
         req_me = urllib.request.Request(self.me_url, method="GET")
         with user_opener.open(req_me, timeout=5) as resp:
             self.assertEqual(resp.status, 200)
@@ -134,6 +140,10 @@ class TestUsersManagement(unittest.TestCase):
             self.assertEqual(me_data["email"], test_email)
             self.assertEqual(me_data["role"], "user")
             self.assertFalse(me_data["isSuperAdmin"])
+            self.assertEqual(me_data["permissions"]["carrosseis"], "liberado")
+            self.assertEqual(me_data["permissions"]["criador"], "em_breve")
+            self.assertEqual(me_data["permissions"]["criador_pct"], 75)
+            self.assertEqual(me_data["permissions"]["radar"], "bloqueado")
 
         # 8. Novo colaborador tenta acessar listagem de usuários e recebe 403 (Forbidden)
         req_list_user = urllib.request.Request(self.users_url, method="GET")
@@ -158,7 +168,12 @@ class TestUsersManagement(unittest.TestCase):
         edit_payload = json.dumps({
             "name": "Colaborador Editado",
             "email": test_email,
-            "role": "admin" # Promove para admin
+            "role": "admin",
+            "permissions": {
+                "carrosseis": "liberado",
+                "criador": "liberado",
+                "radar": "liberado"
+            }
         }).encode("utf-8")
         req_edit = urllib.request.Request(
             f"{self.users_url}/{user_id}",
@@ -170,6 +185,14 @@ class TestUsersManagement(unittest.TestCase):
             self.assertEqual(resp.status, 200)
             edit_res = json.loads(resp.read().decode("utf-8"))
             self.assertTrue(edit_res["ok"])
+
+        # Verifica se as permissões foram atualizadas na listagem
+        with self.super_opener.open(req_list, timeout=5) as resp:
+            users = json.loads(resp.read().decode("utf-8"))
+            for u in users:
+                if u["email"] == test_email:
+                    self.assertEqual(u["permissions"]["radar"], "liberado")
+                    break
 
         # 10. Super Admin tenta editar ou excluir o Super Admin fictício e recebe 400
         req_edit_super = urllib.request.Request(

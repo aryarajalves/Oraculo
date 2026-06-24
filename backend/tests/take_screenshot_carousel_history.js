@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ARTIFACT_DIR = 'C:/Users/aryar/.gemini/antigravity/brain/a79e77ff-8ad9-4dfe-ae10-d2f2a1c47023';
+const ARTIFACT_DIR = 'C:/Users/aryar/.gemini/antigravity/brain/34303ab6-5d35-45c2-8dfa-a6ed7fb424e0';
 
 async function run() {
   console.log('🚀 Iniciando teste visual de Criação Automática de Rascunho e Histórico...');

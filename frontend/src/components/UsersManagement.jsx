@@ -1,5 +1,25 @@
 import React, { useState, useEffect } from 'react';
 
+const defaultPermissions = {
+  carrosseis: 'liberado',
+  criador: 'liberado',
+  calendario: 'liberado',
+  reels: 'liberado',
+  fabrica: 'liberado',
+  oraculo: 'liberado',
+  radar: 'liberado'
+};
+
+const PAGES_TO_CONTROL = [
+  { id: 'carrosseis', label: 'Carrosséis' },
+  { id: 'criador', label: 'Criador' },
+  { id: 'calendario', label: 'Calendário' },
+  { id: 'reels', label: 'Clonador de Reels' },
+  { id: 'fabrica', label: 'Fábrica de Vídeos' },
+  { id: 'oraculo', label: 'Oráculo' },
+  { id: 'radar', label: 'Radar' }
+];
+
 export default function UsersManagement({ showToast }) {
   const [activeSubTab, setActiveSubTab] = useState('users'); // 'users' ou 'invitations'
   const [users, setUsers] = useState([]);
@@ -12,6 +32,7 @@ export default function UsersManagement({ showToast }) {
   const [inviteHours, setInviteHours] = useState('24');
   const [generatedLink, setGeneratedLink] = useState('');
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [invitePermissions, setInvitePermissions] = useState(defaultPermissions);
 
   // Estados de Edição de Usuário
   const [editUserModalOpen, setEditUserModalOpen] = useState(false);
@@ -20,6 +41,7 @@ export default function UsersManagement({ showToast }) {
   const [editEmail, setEditEmail] = useState('');
   const [editRole, setEditRole] = useState('user');
   const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editPermissions, setEditPermissions] = useState(defaultPermissions);
 
   // Estados de Deleção de Usuário
   const [deleteUserModalOpen, setDeleteUserModalOpen] = useState(false);
@@ -68,7 +90,7 @@ export default function UsersManagement({ showToast }) {
       const res = await fetch('/api/users/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: inviteRole, hours: inviteHours })
+        body: JSON.stringify({ role: inviteRole, hours: inviteHours, permissions: invitePermissions })
       });
       const data = await res.json();
       if (res.ok && data.ok) {
@@ -84,6 +106,13 @@ export default function UsersManagement({ showToast }) {
     } finally {
       setInviteSubmitting(false);
     }
+  };
+
+  // Abrir modal de convite limpando dados
+  const openInviteModal = () => {
+    setGeneratedLink('');
+    setInvitePermissions(defaultPermissions);
+    setInviteModalOpen(true);
   };
 
   // Copiar link
@@ -112,6 +141,7 @@ export default function UsersManagement({ showToast }) {
     setEditName(user.name);
     setEditEmail(user.email);
     setEditRole(user.role);
+    setEditPermissions(user.permissions || defaultPermissions);
     setEditUserModalOpen(true);
   };
 
@@ -124,7 +154,7 @@ export default function UsersManagement({ showToast }) {
       const res = await fetch(`/api/users/${editingUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editName, email: editEmail, role: editRole })
+        body: JSON.stringify({ name: editName, email: editEmail, role: editRole, permissions: editPermissions })
       });
       const data = await res.json();
       if (res.ok && data.ok) {
@@ -240,7 +270,7 @@ export default function UsersManagement({ showToast }) {
         <div className="section">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '0 4px' }}>
             <div style={{ fontSize: '14px', color: 'var(--text-2)' }}>Lista de usuários cadastrados no estúdio</div>
-            <button className="btn btn-gold btn-sm" onClick={() => { setGeneratedLink(''); setInviteModalOpen(true); }}>+ Novo Usuário</button>
+            <button className="btn btn-gold btn-sm" onClick={openInviteModal}>+ Novo Usuário</button>
           </div>
 
           {loading ? (
@@ -367,7 +397,7 @@ export default function UsersManagement({ showToast }) {
         <div className="section">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div style={{ fontSize: '14px', color: 'var(--text-2)' }}>Histórico de convites para cadastro no estúdio</div>
-            <button className="btn btn-gold btn-sm" onClick={() => { setGeneratedLink(''); setInviteModalOpen(true); }}>+ Novo Convite</button>
+            <button className="btn btn-gold btn-sm" onClick={openInviteModal}>+ Novo Convite</button>
           </div>
 
           {loading ? (
@@ -544,6 +574,86 @@ export default function UsersManagement({ showToast }) {
                   </select>
                 </div>
 
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label className="form-label">Permissões de Acesso por Página</label>
+                  <div style={{ border: '1px solid var(--border)', borderRadius: '6px', overflow: 'hidden', background: 'rgba(0,0,0,0.2)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                      <thead>
+                        <tr style={{ background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid var(--border)' }}>
+                          <th style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--text-1)' }}>Página</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'center', color: 'var(--text-1)', width: '60px' }}>Bloqueada</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'center', color: 'var(--text-1)', width: '60px' }}>Liberada</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'center', color: 'var(--text-1)', width: '60px' }}>Em Breve</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'center', color: 'var(--text-1)', width: '70px' }}>Conclusão (%)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {PAGES_TO_CONTROL.map((page, idx) => {
+                          const val = invitePermissions[page.id] || 'liberado';
+                          return (
+                            <tr key={page.id} style={{ borderBottom: idx === PAGES_TO_CONTROL.length - 1 ? 'none' : '1px solid var(--border)' }}>
+                              <td style={{ padding: '8px 10px', color: 'var(--text-2)', fontWeight: '500' }}>{page.label}</td>
+                              <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                                <input 
+                                  type="radio" 
+                                  name={`invite-${page.id}`} 
+                                  checked={val === 'bloqueado'} 
+                                  onChange={() => setInvitePermissions(prev => ({ ...prev, [page.id]: 'bloqueado' }))}
+                                  style={{ cursor: 'pointer', accentColor: 'var(--gold)' }}
+                                />
+                              </td>
+                              <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                                <input 
+                                  type="radio" 
+                                  name={`invite-${page.id}`} 
+                                  checked={val === 'liberado'} 
+                                  onChange={() => setInvitePermissions(prev => ({ ...prev, [page.id]: 'liberado' }))}
+                                  style={{ cursor: 'pointer', accentColor: 'var(--gold)' }}
+                                />
+                              </td>
+                              <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                                <input 
+                                  type="radio" 
+                                  name={`invite-${page.id}`} 
+                                  checked={val === 'em_breve'} 
+                                  onChange={() => setInvitePermissions(prev => ({ ...prev, [page.id]: 'em_breve', [`${page.id}_pct`]: invitePermissions[`${page.id}_pct`] || 90 }))}
+                                  style={{ cursor: 'pointer', accentColor: 'var(--gold)' }}
+                                />
+                              </td>
+                              <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                                {val === 'em_breve' ? (
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    max="100" 
+                                    value={invitePermissions[`${page.id}_pct`] !== undefined ? invitePermissions[`${page.id}_pct`] : 90} 
+                                    onChange={(e) => {
+                                      const v = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                                      setInvitePermissions(prev => ({ ...prev, [`${page.id}_pct`]: v }));
+                                    }}
+                                    style={{
+                                      width: '50px',
+                                      background: '#09090b',
+                                      border: '1px solid var(--border)',
+                                      borderRadius: '4px',
+                                      padding: '2px 4px',
+                                      color: '#fff',
+                                      fontSize: '11px',
+                                      textAlign: 'center'
+                                    }}
+                                  />
+                                ) : (
+                                  <span style={{ color: 'var(--text-3)' }}>-</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
                   <button type="button" className="btn btn-outline" onClick={() => setInviteModalOpen(false)}>Fechar</button>
                   <button type="submit" className="btn btn-gold" disabled={inviteSubmitting}>
@@ -584,6 +694,86 @@ export default function UsersManagement({ showToast }) {
                   <option value="user">Usuário comum (Colaborador)</option>
                   <option value="admin">Administrador (Admin)</option>
                 </select>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label className="form-label">Permissões de Acesso por Página</label>
+                <div style={{ border: '1px solid var(--border)', borderRadius: '6px', overflow: 'hidden', background: 'rgba(0,0,0,0.2)' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid var(--border)' }}>
+                        <th style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--text-1)' }}>Página</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'center', color: 'var(--text-1)', width: '60px' }}>Bloqueada</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'center', color: 'var(--text-1)', width: '60px' }}>Liberada</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'center', color: 'var(--text-1)', width: '60px' }}>Em Breve</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'center', color: 'var(--text-1)', width: '70px' }}>Conclusão (%)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {PAGES_TO_CONTROL.map((page, idx) => {
+                        const val = editPermissions[page.id] || 'liberado';
+                        return (
+                          <tr key={page.id} style={{ borderBottom: idx === PAGES_TO_CONTROL.length - 1 ? 'none' : '1px solid var(--border)' }}>
+                            <td style={{ padding: '8px 10px', color: 'var(--text-2)', fontWeight: '500' }}>{page.label}</td>
+                            <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                              <input 
+                                type="radio" 
+                                name={`edit-${page.id}`} 
+                                checked={val === 'bloqueado'} 
+                                onChange={() => setEditPermissions(prev => ({ ...prev, [page.id]: 'bloqueado' }))}
+                                style={{ cursor: 'pointer', accentColor: 'var(--gold)' }}
+                              />
+                            </td>
+                            <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                              <input 
+                                type="radio" 
+                                name={`edit-${page.id}`} 
+                                checked={val === 'liberado'} 
+                                onChange={() => setEditPermissions(prev => ({ ...prev, [page.id]: 'liberado' }))}
+                                style={{ cursor: 'pointer', accentColor: 'var(--gold)' }}
+                              />
+                            </td>
+                            <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                              <input 
+                                type="radio" 
+                                name={`edit-${page.id}`} 
+                                checked={val === 'em_breve'} 
+                                onChange={() => setEditPermissions(prev => ({ ...prev, [page.id]: 'em_breve', [`${page.id}_pct`]: editPermissions[`${page.id}_pct`] || 90 }))}
+                                style={{ cursor: 'pointer', accentColor: 'var(--gold)' }}
+                              />
+                            </td>
+                            <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                              {val === 'em_breve' ? (
+                                <input 
+                                  type="number" 
+                                  min="0" 
+                                  max="100" 
+                                  value={editPermissions[`${page.id}_pct`] !== undefined ? editPermissions[`${page.id}_pct`] : 90} 
+                                  onChange={(e) => {
+                                    const v = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                                    setEditPermissions(prev => ({ ...prev, [`${page.id}_pct`]: v }));
+                                  }}
+                                  style={{
+                                    width: '50px',
+                                    background: '#09090b',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '4px',
+                                    padding: '2px 4px',
+                                    color: '#fff',
+                                    fontSize: '11px',
+                                    textAlign: 'center'
+                                  }}
+                                />
+                              ) : (
+                                <span style={{ color: 'var(--text-3)' }}>-</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>

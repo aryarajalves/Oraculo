@@ -64,21 +64,49 @@ export default function Sidebar({ activeTab, setActiveTab, branding, onNewCarous
         </div>
       </div>
       <nav className="sidebar-nav">
-        {categories.map(cat => (
-          <React.Fragment key={cat.title}>
-            <div className="sidebar-category-title">{cat.title}</div>
-            {cat.items.map(tab => (
-              <button
-                key={tab.id}
-                className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
-          </React.Fragment>
-        ))}
+        {categories.map(cat => {
+          const filteredItems = cat.items.filter(item => {
+            const access = currentUser?.permissions?.[item.id];
+            return access !== 'bloqueado';
+          });
+          if (filteredItems.length === 0) return null;
+          return (
+            <React.Fragment key={cat.title}>
+              <div className="sidebar-category-title">{cat.title}</div>
+              {filteredItems.map(tab => {
+                const access = currentUser?.permissions?.[tab.id];
+                const isSoon = access === 'em_breve';
+                return (
+                  <button
+                    key={tab.id}
+                    className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
+                    onClick={() => setActiveTab(tab.id)}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                      {tab.icon}
+                      {tab.label}
+                    </div>
+                    {isSoon && (
+                      <span style={{ 
+                        fontSize: '9px', 
+                        background: 'rgba(212, 163, 89, 0.15)', 
+                        color: 'var(--gold)', 
+                        padding: '2px 6px', 
+                        borderRadius: '10px', 
+                        border: '1px solid rgba(212, 163, 89, 0.3)',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        Breve
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </React.Fragment>
+          );
+        })}
         
         <div className="sidebar-category-title">Painel</div>
         {currentUser?.isSuperAdmin && (

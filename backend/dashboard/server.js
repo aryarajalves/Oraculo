@@ -186,23 +186,47 @@ app.get('/auth/logout', (req, res) => {
 // ── Rotas de Gestão de Usuários & Convites ─────────────────────────────────────
 
 // Obter usuário atual logado
-app.get('/api/me', (req, res) => {
+app.get('/api/me', async (req, res) => {
   if (!req.session || !req.session.authenticated) {
     return res.status(401).json({ error: 'Não autenticado' });
   }
   const isSuper = isUserSuperAdmin(req.session.user);
+  
+  let permissions = {};
+  if (isSuper) {
+    permissions = {
+      carrosseis: 'liberado',
+      criador: 'liberado',
+      calendario: 'liberado',
+      reels: 'liberado',
+      fabrica: 'liberado',
+      oraculo: 'liberado',
+      radar: 'liberado'
+    };
+  } else {
+    try {
+      const dbUserRes = await query("SELECT permissions FROM dashboard_users WHERE email = $1", [req.session.user]);
+      if (dbUserRes.rows.length > 0) {
+        permissions = dbUserRes.rows[0].permissions || {};
+      }
+    } catch (err) {
+      console.error("Erro ao buscar permissões do usuário:", err);
+    }
+  }
+
   res.json({
     name: isSuper ? (process.env.DASHBOARD_USER_NAME || 'Super Admin') : (req.session.userName || req.session.user),
     email: req.session.user,
     isSuperAdmin: isSuper,
-    role: isSuper ? 'admin' : (req.session.role || 'user')
+    role: isSuper ? 'admin' : (req.session.role || 'user'),
+    permissions
   });
 });
 
 // Listar todos os usuários (Super Admin apenas)
 app.get('/api/users', requireSuperAdmin, async (req, res) => {
   try {
-    const dbUsers = await query("SELECT id, name, email, role, created_at FROM dashboard_users ORDER BY id ASC");
+    const dbUsers = await query("SELECT id, name, email, role, permissions, created_at FROM dashboard_users ORDER BY id ASC");
     
     // Insere o Super Admin virtual no topo da lista
     const superAdminUser = {
@@ -211,10 +235,19 @@ app.get('/api/users', requireSuperAdmin, async (req, res) => {
       email: getSuperAdminEmail(),
       role: 'admin',
       created_at: new Date().toISOString(),
-      isSuperAdmin: true
+      isSuperAdmin: true,
+      permissions: {
+        carrosseis: 'liberado',
+        criador: 'liberado',
+        calendario: 'liberado',
+        reels: 'liberado',
+        fabrica: 'liberado',
+        oraculo: 'liberado',
+        radar: 'liberado'
+      }
     };
     
-    const list = [superAdminUser, ...dbUsers.rows.map(u => ({ ...u, isSuperAdmin: false }))];
+    const list = [superAdminUser, ...dbUsers.rows.map(u => ({ ...u, isSuperAdmin: false, permissions: u.permissions || {} }))];
     res.json(list);
   } catch (err) {
     res.status(500).json({ error: 'Erro ao listar usuários: ' + err.message });
@@ -228,7 +261,7 @@ app.put('/api/users/:id', requireSuperAdmin, async (req, res) => {
     return res.status(400).json({ error: 'O Super Admin do sistema não pode ser editado.' });
   }
   
-  const { name, email, role } = req.body;
+  const { name, email, role, permissions } = req.body;
   if (!name || !email || !role) {
     return res.status(400).json({ error: 'Preencha todos os campos obrigatórios.' });
   }
@@ -245,8 +278,8 @@ app.put('/api/users/:id', requireSuperAdmin, async (req, res) => {
     }
     
     await query(
-      "UPDATE dashboard_users SET name = $1, email = $2, role = $3 WHERE id = $4",
-      [name, email, role, id]
+      "UPDATE dashboard_users SET name = $1, email = $2, role = $3, permissions = $4 WHERE id = $5",
+      [name, email, role, permissions || {}, id]
     );
     res.json({ ok: true });
   } catch (err) {
@@ -275,7 +308,7 @@ app.get('/api/users/invitations', requireSuperAdmin, async (req, res) => {
     // Atualiza expirados automaticamente
     await query("UPDATE invitations SET status = 'expired' WHERE expires_at < CURRENT_TIMESTAMP AND status = 'pending'");
     const invites = await query("SELECT * FROM invitations ORDER BY created_at DESC");
-    res.json(invites.rows);
+    res.json(invites.rows.map(inv => ({ ...inv, permissions: inv.permissions || {} })));
   } catch (err) {
     res.status(500).json({ error: 'Erro ao obter convites: ' + err.message });
   }
@@ -283,7 +316,7 @@ app.get('/api/users/invitations', requireSuperAdmin, async (req, res) => {
 
 // Criar convite (Super Admin apenas)
 app.post('/api/users/invitations', requireSuperAdmin, async (req, res) => {
-  const { role, hours } = req.body;
+  const { role, hours, permissions } = req.body;
   if (!role || !hours) {
     return res.status(400).json({ error: 'Preencha o cargo e o prazo de expiração.' });
   }
@@ -293,8 +326,8 @@ app.post('/api/users/invitations', requireSuperAdmin, async (req, res) => {
   
   try {
     await query(
-      "INSERT INTO invitations (id, role, expires_at, status) VALUES ($1, $2, $3, $4)",
-      [token, role, expiresAt, 'pending']
+      "INSERT INTO invitations (id, role, expires_at, status, permissions) VALUES ($1, $2, $3, $4, $5)",
+      [token, role, expiresAt, 'pending', permissions || {}]
     );
     res.json({ ok: true, inviteId: token });
   } catch (err) {
@@ -362,8 +395,8 @@ app.post('/api/users/register', async (req, res) => {
     // 3. Cadastra o novo usuário
     const hashedPassword = hashPassword(password);
     await query(
-      "INSERT INTO dashboard_users (name, email, password, role) VALUES ($1, $2, $3, $4)",
-      [name, email, hashedPassword, invite.role]
+      "INSERT INTO dashboard_users (name, email, password, role, permissions) VALUES ($1, $2, $3, $4, $5)",
+      [name, email, hashedPassword, invite.role, invite.permissions || {}]
     );
     
     // 4. Marca convite como aceito
@@ -411,7 +444,8 @@ function mapCarouselFromDb(row) {
     totalSlides: row.total_slides,
     caption: row.caption,
     notes: row.notes,
-    slides: typeof row.slides === 'string' ? JSON.parse(row.slides) : (row.slides || [])
+    slides: typeof row.slides === 'string' ? JSON.parse(row.slides) : (row.slides || []),
+    chatHistory: typeof row.chat_history === 'string' ? JSON.parse(row.chat_history) : (row.chat_history || [])
   };
 }
 
@@ -439,8 +473,8 @@ async function writeData(data) {
       const upsertQuery = `
         INSERT INTO carousels (
           id, title, theme, praca, format, preset, status, created_at,
-          slides_dir, slide_prefix, total_slides, caption, notes, slides
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          slides_dir, slide_prefix, total_slides, caption, notes, slides, chat_history
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         ON CONFLICT (id) DO UPDATE SET
           title = EXCLUDED.title,
           theme = EXCLUDED.theme,
@@ -454,7 +488,8 @@ async function writeData(data) {
           total_slides = EXCLUDED.total_slides,
           caption = EXCLUDED.caption,
           notes = EXCLUDED.notes,
-          slides = EXCLUDED.slides
+          slides = EXCLUDED.slides,
+          chat_history = EXCLUDED.chat_history
       `;
       const params = [
         c.id,
@@ -470,7 +505,8 @@ async function writeData(data) {
         c.totalSlides || 0,
         c.caption || '',
         c.notes || '',
-        JSON.stringify(c.slides || [])
+        JSON.stringify(c.slides || []),
+        JSON.stringify(c.chatHistory || [])
       ];
       await query(upsertQuery, params);
     }
@@ -600,6 +636,7 @@ app.post("/api/carousels", async (req, res) => {
     totalSlides: 0,
     caption: req.body.caption || "",
     notes: req.body.notes || "",
+    chatHistory: req.body.chatHistory || [],
   };
   all.push(newCarousel);
   await writeData(all);

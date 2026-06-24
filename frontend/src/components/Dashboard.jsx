@@ -9,7 +9,8 @@ export default function Dashboard({
   onOpenEditModal,
   onLoadCarousels,
   showToast,
-  onOpenHistoryModal
+  onOpenHistoryModal,
+  onLoadChatHistory
 }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedCards, setExpandedCards] = useState({});
@@ -302,6 +303,15 @@ export default function Dashboard({
                     </select>
 
                     <div className="card-actions">
+                      {c.chatHistory && c.chatHistory.length > 0 && (
+                        <button
+                          className="btn btn-outline btn-sm"
+                          style={{ borderColor: 'var(--gold, #e0a96d)', color: 'var(--gold, #e0a96d)' }}
+                          onClick={(e) => { e.stopPropagation(); onLoadChatHistory(c.chatHistory); }}
+                        >
+                          💬 Ver no Chat
+                        </button>
+                      )}
                       {(c.status === 'rascunho' || c.status === 'pronto') && (
                         <button
                           className="btn btn-outline btn-sm"
@@ -354,11 +364,11 @@ export default function Dashboard({
           <div className="form-box">
             <h3 className="form-title" style={{ color: 'var(--red, #f43f5e)', fontSize: '16px' }}>Confirmar Exclusão</h3>
             <p style={{ margin: '14px 0 24px', color: '#e4e4e7', fontSize: '14px', lineHeight: '1.5' }}>
-              Você tem certeza que deseja excluir permanentemente este carrossel? Esta ação não pode ser desfeita e removerá todos os arquivos físicos e registros.
+               Você tem certeza que deseja excluir permanentemente este carrossel? Esta ação não pode ser desfeita e removerá todos os arquivos físicos e registros.
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <button className="btn btn-outline" onClick={() => setDeleteTargetId(null)}>Cancelar</button>
-              <button className="btn btn-danger" style={{ backgroundColor: 'var(--red, #f43f5e)', border: 'none' }} onClick={confirmDeleteIndividual}>Excluir permanentemente</button>
+              <button className="btn btn-danger" style={{ backgroundColor: 'var(--red, #f43f5e)', color: '#ffffff', border: 'none' }} onClick={confirmDeleteIndividual}>Excluir permanentemente</button>
             </div>
           </div>
         </div>
@@ -374,7 +384,7 @@ export default function Dashboard({
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <button className="btn btn-outline" onClick={() => setIsBulkDeleteModalOpen(false)}>Cancelar</button>
-              <button className="btn btn-danger" style={{ backgroundColor: 'var(--red, #f43f5e)', border: 'none' }} onClick={confirmDeleteBulk}>Excluir permanentemente</button>
+              <button className="btn btn-danger" style={{ backgroundColor: 'var(--red, #f43f5e)', color: '#ffffff', border: 'none' }} onClick={confirmDeleteBulk}>Excluir permanentemente</button>
             </div>
           </div>
         </div>

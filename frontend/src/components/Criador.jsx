@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function Criador({ onStartGeneration, showToast, shouldAddFormMessage, clearAddFormMessage }) {
+export default function Criador({ onStartGeneration, showToast, shouldAddFormMessage, clearAddFormMessage, initialMessages, clearInitialMessages }) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [generating, setGenerating] = useState(false);
@@ -99,6 +99,13 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
     }
   }, [shouldAddFormMessage]);
 
+  useEffect(() => {
+    if (initialMessages) {
+      setMessages(initialMessages);
+      clearInitialMessages();
+    }
+  }, [initialMessages]);
+
   const handleSendFormBriefing = async (briefing) => {
     if (generating) return;
 
@@ -114,6 +121,29 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
 - **Notas:** ${briefing.notes || 'Não definido'}`;
 
     setMessages(prev => [...prev, { role: 'user', content: displayUserText }]);
+
+    // Cria o rascunho do carrossel no banco de dados
+    try {
+      await fetch('/api/carousels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: briefing.title || 'Novo Carrossel',
+          theme: briefing.theme || '',
+          format: briefing.format || 'A',
+          slidesDir: briefing.dir || '',
+          caption: briefing.caption || '',
+          notes: briefing.notes || '',
+          status: 'rascunho',
+          chatHistory: [
+            ...messages.filter(m => m.role !== 'form'),
+            { role: 'user', content: displayUserText }
+          ]
+        })
+      });
+    } catch (err) {
+      console.error('Erro ao salvar rascunho inicial no Postgres:', err);
+    }
 
     setGenerating(true);
     const aiMessageId = 'ai-' + Date.now();
@@ -176,13 +206,30 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
   };
 
   const handleSaveDraft = async (text) => {
+    const temaMatch = text.match(/TEMA:\s*(.+)/i);
+    const bigIdeaMatch = text.match(/BIG IDEA:\s*(.+)/i);
+    const title = temaMatch
+      ? temaMatch[1].trim().slice(0, 80)
+      : text.slice(0, 60).replace(/\n/g, ' ') + '...';
+
     try {
-      const res = await fetch('/api/carousels/draft', {
+      const res = await fetch('/api/carousels', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: text })
+        body: JSON.stringify({
+          title,
+          theme: temaMatch?.[1]?.trim() || '',
+          notes: text,
+          status: 'rascunho',
+          caption: bigIdeaMatch?.[1]?.trim() || '',
+          chatHistory: messages
+        })
       });
-      if (res.ok) showToast('Rascunho salvo!');
+      if (res.ok) {
+        showToast('Rascunho salvo!');
+      } else {
+        showToast('Erro ao salvar rascunho.');
+      }
     } catch (e) {
       showToast('Erro ao salvar rascunho.');
     }

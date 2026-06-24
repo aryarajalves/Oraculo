@@ -27,11 +27,16 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('activeTab', activeTab);
+    if (activeTab === 'carrosseis') {
+      loadCarousels();
+      loadStats();
+    }
   }, [activeTab]);
   const [allCarousels, setAllCarousels] = useState([]);
   const [stats, setStats] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [shouldAddFormMessage, setShouldAddFormMessage] = useState(false);
+  const [criadorInitialMessages, setCriadorInitialMessages] = useState(null);
 
   // Modais
   const [newModalOpen, setNewModalOpen] = useState(false);
@@ -344,75 +349,162 @@ export default function App() {
       />
 
       <div className="main-area">
-        <header className="main-header">
-          <div className="page-title" style={{ textTransform: 'capitalize' }}>
-            {activeTab === 'configuracoes' ? 'Configurações' : activeTab === 'fabrica' ? 'Fábrica de Vídeos' : activeTab === 'users' ? 'Gestão de Usuários' : activeTab}
+
+
+        {currentUser?.permissions?.[activeTab] === 'em_breve' ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 'calc(100vh - 120px)',
+            padding: '40px',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '24px',
+              padding: '60px 40px',
+              maxWidth: '560px',
+              width: '100%',
+              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              animation: 'fadeInUp 0.6s ease-out'
+            }}>
+              {/* Glowing Icon Container */}
+              <div style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(212,163,89,0.2) 0%, rgba(212,163,89,0) 70%)',
+                border: '1px solid rgba(212, 163, 89, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '28px',
+                boxShadow: '0 0 20px rgba(212, 163, 89, 0.15)'
+              }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 4px var(--gold))' }}>
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+
+              {/* Title */}
+              <h2 style={{
+                fontSize: '24px',
+                fontWeight: '700',
+                color: '#ffffff',
+                marginBottom: '16px',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                background: 'linear-gradient(135deg, #ffffff 0%, var(--text-2) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                Página em Progresso
+              </h2>
+
+              {/* Subtitle */}
+              <p style={{
+                fontSize: '14px',
+                color: 'var(--text-3)',
+                lineHeight: '1.6',
+                marginBottom: '32px',
+                maxWidth: '400px'
+              }}>
+                Esta funcionalidade está sendo preparada com exclusividade para você. Em breve, ela estará totalmente liberada para uso no seu painel!
+              </p>
+
+              {/* Progress Indicator */}
+              {(() => {
+                const pagePct = currentUser?.permissions?.[`${activeTab}_pct`] !== undefined ? Number(currentUser.permissions[`${activeTab}_pct`]) : 90;
+                return (
+                  <div style={{ width: '100%', maxWidth: '280px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--gold)', marginBottom: '8px', fontWeight: '600', letterSpacing: '0.05em' }}>
+                      <span>STATUS DO DESENVOLVIMENTO</span>
+                      <span>{pagePct}%</span>
+                    </div>
+                    <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div style={{ height: '100%', width: `${pagePct}%`, background: 'linear-gradient(90deg, var(--gold) 0%, #ffc837 100%)', borderRadius: '2px', boxShadow: '0 0 8px var(--gold)' }}></div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
-          <div className="header-actions">
-            <button className="btn btn-ghost" onClick={() => window.location.reload()}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-              Atualizar
-            </button>
-          </div>
-        </header>
+        ) : (
+          <>
+            {activeTab === 'carrosseis' && (
+              <Dashboard
+                allCarousels={allCarousels}
+                stats={stats}
+                filterStatus={filterStatus}
+                setFilterStatus={setFilterStatus}
+                onOpenLightbox={(id, slides, idx) => {
+                  setLightboxCarouselId(id);
+                  setLightboxSlides(slides);
+                  setLightboxIndex(idx);
+                  setLightboxOpen(true);
+                }}
+                onOpenEditModal={(id, filename) => {
+                  setEditCarouselId(id);
+                  setEditFilename(filename);
+                  setEditModalOpen(true);
+                }}
+                onLoadCarousels={loadCarousels}
+                showToast={showToast}
+                onOpenHistoryModal={(id) => {
+                  setHistoryCarouselId(id);
+                  setHistoryModalOpen(true);
+                }}
+                onLoadChatHistory={(chatHistory) => {
+                  setCriadorInitialMessages(chatHistory);
+                  setActiveTab('criador');
+                }}
+              />
+            )}
 
-        {activeTab === 'carrosseis' && (
-          <Dashboard
-            allCarousels={allCarousels}
-            stats={stats}
-            filterStatus={filterStatus}
-            setFilterStatus={setFilterStatus}
-            onOpenLightbox={(id, slides, idx) => {
-              setLightboxCarouselId(id);
-              setLightboxSlides(slides);
-              setLightboxIndex(idx);
-              setLightboxOpen(true);
-            }}
-            onOpenEditModal={(id, filename) => {
-              setEditCarouselId(id);
-              setEditFilename(filename);
-              setEditModalOpen(true);
-            }}
-            onLoadCarousels={loadCarousels}
-            showToast={showToast}
-            onOpenHistoryModal={(id) => {
-              setHistoryCarouselId(id);
-              setHistoryModalOpen(true);
-            }}
-          />
-        )}
+            {activeTab === 'calendario' && (
+              <Calendar
+                allCarousels={allCarousels}
+                onLoadCarousels={loadCarousels}
+                showToast={showToast}
+              />
+            )}
 
-        {activeTab === 'calendario' && (
-          <Calendar
-            allCarousels={allCarousels}
-            onLoadCarousels={loadCarousels}
-            showToast={showToast}
-          />
-        )}
+            {activeTab === 'reels' && (
+              <ReelsCloner
+                onOpenNewModal={(defaults) => {
+                  setNewModalDefaults(defaults);
+                  setNewModalOpen(true);
+                }}
+                showToast={showToast}
+              />
+            )}
 
-        {activeTab === 'reels' && (
-          <ReelsCloner
-            onOpenNewModal={(defaults) => {
-              setNewModalDefaults(defaults);
-              setNewModalOpen(true);
-            }}
-            showToast={showToast}
-          />
+            {activeTab === 'oraculo' && <Oraculo showToast={showToast} />}
+            {activeTab === 'radar' && <Radar showToast={showToast} />}
+            {activeTab === 'fabrica' && <VideoFactory />}
+            {activeTab === 'criador' && (
+              <Criador
+                onStartGeneration={handleStartGeneration}
+                showToast={showToast}
+                shouldAddFormMessage={shouldAddFormMessage}
+                clearAddFormMessage={() => setShouldAddFormMessage(false)}
+                initialMessages={criadorInitialMessages}
+                clearInitialMessages={() => setCriadorInitialMessages(null)}
+              />
+            )}
+            {activeTab === 'configuracoes' && <Settings showToast={showToast} onLoadBranding={loadBranding} />}
+            {activeTab === 'users' && <UsersManagement showToast={showToast} />}
+          </>
         )}
-
-        {activeTab === 'oraculo' && <Oraculo showToast={showToast} />}
-        {activeTab === 'radar' && <Radar showToast={showToast} />}
-        {activeTab === 'fabrica' && <VideoFactory />}
-        {activeTab === 'criador' && (
-          <Criador
-            onStartGeneration={handleStartGeneration}
-            showToast={showToast}
-            shouldAddFormMessage={shouldAddFormMessage}
-            clearAddFormMessage={() => setShouldAddFormMessage(false)}
-          />
-        )}
-        {activeTab === 'configuracoes' && <Settings showToast={showToast} onLoadBranding={loadBranding} />}
-        {activeTab === 'users' && <UsersManagement showToast={showToast} />}
       </div>
 
       <Lightbox
@@ -434,6 +526,10 @@ export default function App() {
         onClose={() => setNewModalOpen(false)}
         onCreate={handleCreateCarousel}
         defaults={newModalDefaults}
+        onSendToChat={(briefing) => {
+          setShouldAddFormMessage(true);
+          setActiveTab('criador');
+        }}
       />
 
       <EditSlideModal
