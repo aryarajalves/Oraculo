@@ -71,8 +71,6 @@ services:
       - INSTAGRAM_PASSWORD=
 
       # ── Armazenamento Externo & Imagens ───────────────────────────────────────
-      # Chave de API da plataforma de hospedagem temporária de imagens ImgBB
-      - IMGBB_API_KEY=
       # Key ID de API do serviço de storage em nuvem Backblaze B2
       - B2_KEY_ID=
       # Application Key correspondente do Backblaze B2
