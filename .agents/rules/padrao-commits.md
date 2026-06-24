@@ -52,3 +52,8 @@ wip
 2. Máximo de 72 caracteres na linha do título.
 3. Se a mudança for grande, adicione um corpo explicativo após uma linha em branco, também em português.
 4. Nunca use "WIP" como commit final — finalize antes de commitar.
+
+## Envio para o GitHub (Git Push)
+
+- O agente **NUNCA** deve executar comandos de envio para o repositório remoto (ex: `git push`) de forma automática ou autônoma.
+- O `git push` só é permitido se o usuário pedir explicitamente para enviar as alterações para o GitHub (ex: "envie para o github", "faça push no master", "suba as atualizações"). Caso contrário, limite-se a commitar localmente.
