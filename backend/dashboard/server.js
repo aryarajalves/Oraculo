@@ -20,6 +20,8 @@ import authRouter from "./routes/auth.js";
 import usersRouter from "./routes/users.js";
 import carouselsRouter from "./routes/carousels.js";
 import servicesRouter from "./routes/services.js";
+import backupsRouter from "./routes/backups.js";
+import { resetBackupScheduler } from "./backupManager.js";
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -71,6 +73,7 @@ app.use(authRouter);
 app.use(usersRouter);
 app.use(carouselsRouter);
 app.use(servicesRouter);
+app.use(backupsRouter);
 
 app.use(express.static(PUBLIC_DIR));
 
@@ -108,6 +111,7 @@ setInterval(async () => {
 
 // ── Start ────────────────────────────────────────────────────────────────────
 initDb().then(() => {
+  resetBackupScheduler();
   app.listen(PORT, () => {
     console.log(`\nFonte Oculta Dashboard rodando em: http://localhost:${PORT}\n`);
   });

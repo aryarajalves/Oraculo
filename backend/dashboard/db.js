@@ -72,12 +72,48 @@ export async function initDb() {
     );
   `;
 
+  const createBackupConfigTable = `
+    CREATE TABLE IF NOT EXISTS backup_config (
+      id INTEGER PRIMARY KEY DEFAULT 1,
+      enabled BOOLEAN DEFAULT FALSE,
+      frequency VARCHAR(50) DEFAULT 'hours',
+      interval_val INTEGER DEFAULT 6,
+      s3_folder VARCHAR(255) DEFAULT 'backups/',
+      retention INTEGER DEFAULT 30,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT one_row CHECK (id = 1)
+    );
+  `;
+
+  const createBackupLogsTable = `
+    CREATE TABLE IF NOT EXISTS backup_logs (
+      id SERIAL PRIMARY KEY,
+      filename VARCHAR(255) UNIQUE NOT NULL,
+      size_bytes BIGINT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      status VARCHAR(50) NOT NULL,
+      error_message TEXT
+    );
+  `;
+
   try {
     await query(createCarouselsTable);
     await query(createReelsHistoryTable);
     await query(createDashboardUsersTable);
     await query(createInvitationsTable);
-    console.log('✅ Tabelas carousels, reels_history, dashboard_users e invitations validadas/criadas com sucesso.');
+    await query(createBackupConfigTable);
+    await query(createBackupLogsTable);
+
+    // Inicializa a linha de configuração única se não existir
+    const checkConfig = await query("SELECT * FROM backup_config WHERE id = 1");
+    if (checkConfig.rows.length === 0) {
+      await query(`
+        INSERT INTO backup_config (id, enabled, frequency, interval_val, s3_folder, retention)
+        VALUES (1, FALSE, 'hours', 6, 'backups/', 30);
+      `);
+    }
+
+    console.log('✅ Tabelas carousels, reels_history, dashboard_users, invitations, backup_config e backup_logs validadas/criadas com sucesso.');
   } catch (err) {
     console.error('❌ Erro ao inicializar tabelas do banco de dados:', err);
     throw err;

@@ -13,6 +13,7 @@ import NewCarouselModal from './components/NewCarouselModal';
 import EditSlideModal from './components/EditSlideModal';
 import LiveGenPanel from './components/LiveGenPanel';
 import UsersManagement from './components/UsersManagement';
+import BackupManagement from './components/BackupManagement';
 import GenerationHistoryModal from './components/GenerationHistoryModal';
 import InProgressPage from './components/InProgressPage';
 import { parseCarouselText } from './utils/carouselParser';
@@ -338,6 +339,7 @@ export default function App() {
             )}
             {activeTab === 'configuracoes' && <Settings showToast={showToast} onLoadBranding={loadBranding} />}
             {activeTab === 'users' && <UsersManagement showToast={showToast} />}
+            {activeTab === 'backups' && <BackupManagement showToast={showToast} />}
           </>
         )}
       </div>

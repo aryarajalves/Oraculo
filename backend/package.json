@@ -15,6 +15,7 @@
     "cookie-session": "^2.1.1",
     "docx": "^9.6.1",
     "express-session": "^1.19.0",
+    "multer": "^2.2.0",
     "pg": "^8.11.3",
     "pptxgenjs": "^4.0.1",
     "zod": "^3.25.28"
