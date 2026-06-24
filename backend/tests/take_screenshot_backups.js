@@ -37,6 +37,15 @@ async function run() {
     console.log('📸 Capturando aba de Backups...');
     await page.screenshot({ path: path.join(ARTIFACT_DIR, 'backups_tab.png'), fullPage: true });
 
+    // Clica em Salvar Configuração para disparar o toast
+    console.log('💾 Clicando em Salvar Configuração para disparar o toast...');
+    await page.click('button:has-text("Salvar Configuração")');
+    await page.waitForTimeout(800);
+
+    // Captura o estado com o toast visível no topo direito
+    console.log('📸 Capturando aba de Backups com Toast...');
+    await page.screenshot({ path: path.join(ARTIFACT_DIR, 'backups_tab_toast.png') });
+
     console.log('🎉 Capturas visuais criadas com sucesso na pasta de artefatos!');
 
   } catch (error) {
