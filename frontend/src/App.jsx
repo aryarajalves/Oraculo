@@ -14,6 +14,8 @@ import EditSlideModal from './components/EditSlideModal';
 import LiveGenPanel from './components/LiveGenPanel';
 import UsersManagement from './components/UsersManagement';
 import GenerationHistoryModal from './components/GenerationHistoryModal';
+import InProgressPage from './components/InProgressPage';
+import { parseCarouselText } from './utils/carouselParser';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
@@ -216,89 +218,7 @@ export default function App() {
   };
 
   const handleStartGeneration = async (carouselText) => {
-    // Parse output
-    const parser = (text) => {
-      const t = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-      const temaMatch = t.match(/TEMA:\s*(.+)/i);
-      const pracaMatch = t.match(/PRA[ÇC]A:\s*(.+)/i);
-      const bigIdea = t.match(/BIG IDEA:\s*(.+)/i);
-      const revisorMatch = t.match(/TOTAL:\s*([\d]+\/15)/i);
-      const captionMatch = t.match(/CAPTION[^:\n]*:\s*\n([\s\S]+?)(?=\nCTA TRIBAL|━)/i);
-      const ctaMatch = t.match(/CTA TRIBAL:\s*"([^"\n]+)"/i);
-      const title = temaMatch ? temaMatch[1].trim().slice(0, 80) : 'Carrossel Fonte Oculta';
-      const caption = (captionMatch?.[1] || bigIdea?.[1] || '').trim().slice(0, 800);
-
-      const slides = [];
-      const lines = t.split('\n');
-      const slideHeader = /^\[S(\d+)\s*[—–\-]+\s*([^\]|]+?)(?:\s*\|\s*layout:\s*(\w+))?\s*\]/i;
-      let current = null;
-      let field = null;
-
-      const flush = () => {
-        if (current && current.title) {
-          slides.push({
-            num: current.num,
-            estado: current.estado,
-            layout: current.layout,
-            title: current.title.trim(),
-            body: current.body.trim(),
-            prompt: current.prompt.trim(),
-          });
-        }
-      };
-
-      for (const raw of lines) {
-        const line = raw.trim();
-        const hm = line.match(slideHeader);
-        if (hm) {
-          flush();
-          current = {
-            num: hm[1].padStart(2, '0'),
-            estado: hm[2].trim().replace(/[^\w\s]/g, '').trim().toUpperCase(),
-            layout: (hm[3] || 'fullbleed').trim(),
-            title: '', body: '', prompt: '',
-          };
-          field = null;
-          continue;
-        }
-        if (!current) continue;
-        if (/^T[IÍ]TULO:\s*/i.test(line)) {
-          field = 'title';
-          current.title = line.replace(/^T[IÍ]TULO:\s*/i, '');
-          continue;
-        }
-        if (/^CORPO:\s*/i.test(line)) {
-          field = 'body';
-          current.body = line.replace(/^CORPO:\s*/i, '');
-          continue;
-        }
-        if (/^VISUAL:\s*/i.test(line)) {
-          field = 'prompt';
-          current.prompt = line.replace(/^VISUAL:\s*/i, '');
-          continue;
-        }
-        if (line === '') {
-          if (field === 'prompt') field = null;
-          continue;
-        }
-        if (field === 'title') current.title += '\n' + line;
-        if (field === 'body') current.body += '\n' + line;
-        if (field === 'prompt') current.prompt += ' ' + line;
-      }
-      flush();
-
-      return {
-        title,
-        theme: title.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, '-').slice(0, 48),
-        format: pracaMatch?.[1]?.trim().slice(0, 20) || 'B',
-        caption,
-        notes: ctaMatch?.[1]?.trim() || '',
-        revisor_score: revisorMatch?.[1] || '',
-        slides,
-      };
-    };
-
-    const payload = parser(carouselText);
+    const payload = parseCarouselText(carouselText);
     if (payload.slides.length === 0) {
       alert('Não consegui extrair slides do carrossel!');
       return;
@@ -352,92 +272,7 @@ export default function App() {
 
 
         {currentUser?.permissions?.[activeTab] === 'em_breve' ? (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: 'calc(100vh - 120px)',
-            padding: '40px',
-            textAlign: 'center'
-          }}>
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.03)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '24px',
-              padding: '60px 40px',
-              maxWidth: '560px',
-              width: '100%',
-              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              animation: 'fadeInUp 0.6s ease-out'
-            }}>
-              {/* Glowing Icon Container */}
-              <div style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(212,163,89,0.2) 0%, rgba(212,163,89,0) 70%)',
-                border: '1px solid rgba(212, 163, 89, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '28px',
-                boxShadow: '0 0 20px rgba(212, 163, 89, 0.15)'
-              }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 4px var(--gold))' }}>
-                  <circle cx="12" cy="12" r="10"/>
-                  <polyline points="12 6 12 12 16 14"/>
-                </svg>
-              </div>
-
-              {/* Title */}
-              <h2 style={{
-                fontSize: '24px',
-                fontWeight: '700',
-                color: '#ffffff',
-                marginBottom: '16px',
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-                background: 'linear-gradient(135deg, #ffffff 0%, var(--text-2) 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>
-                Página em Progresso
-              </h2>
-
-              {/* Subtitle */}
-              <p style={{
-                fontSize: '14px',
-                color: 'var(--text-3)',
-                lineHeight: '1.6',
-                marginBottom: '32px',
-                maxWidth: '400px'
-              }}>
-                Esta funcionalidade está sendo preparada com exclusividade para você. Em breve, ela estará totalmente liberada para uso no seu painel!
-              </p>
-
-              {/* Progress Indicator */}
-              {(() => {
-                const pagePct = currentUser?.permissions?.[`${activeTab}_pct`] !== undefined ? Number(currentUser.permissions[`${activeTab}_pct`]) : 90;
-                return (
-                  <div style={{ width: '100%', maxWidth: '280px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--gold)', marginBottom: '8px', fontWeight: '600', letterSpacing: '0.05em' }}>
-                      <span>STATUS DO DESENVOLVIMENTO</span>
-                      <span>{pagePct}%</span>
-                    </div>
-                    <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div style={{ height: '100%', width: `${pagePct}%`, background: 'linear-gradient(90deg, var(--gold) 0%, #ffc837 100%)', borderRadius: '2px', boxShadow: '0 0 8px var(--gold)' }}></div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
+          <InProgressPage activeTab={activeTab} currentUser={currentUser} />
         ) : (
           <>
             {activeTab === 'carrosseis' && (
