@@ -22,9 +22,9 @@ services:
       # Usuário do banco de dados PostgreSQL
       - DB_USER=postgres
       # Senha de conexão do banco de dados PostgreSQL
-      - DB_PASSWORD=45d79466d26a4b2cab30dc173f9a3cc5
+      - DB_PASSWORD=nVWsEnJzFiHLkku2N-554aCHlyQnRRhyCo4OnfddYo0
       # Nome do banco de dados do Oráculo
-      - DB_NAME=oracle_manager
+      - DB_NAME=oraculo
       
       # ── MinIO/S3 Externo ────────────────────────────────────────────────────────
       # Endpoint S3 de conexão (ex: MinIO local ou AWS S3 / Cloudflare R2)
