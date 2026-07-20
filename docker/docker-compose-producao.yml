@@ -114,7 +114,7 @@ services:
           memory: 1024M
       labels:
       - traefik.enable=1
-      - traefik.http.routers.oraculo.rule=Host(`fonteoculta.aryaraj.shop`)
+      - traefik.http.routers.oraculo.rule=Host(`oraculohaucacau.aryaraj.shop`)
       - traefik.http.routers.oraculo.entrypoints=websecure
       - traefik.http.routers.oraculo.tls.certresolver=letsencryptresolver
       - traefik.http.routers.oraculo.service=oraculo
