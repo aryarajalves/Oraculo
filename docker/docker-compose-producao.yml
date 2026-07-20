@@ -10,21 +10,21 @@ services:
       - network_swarm_public
     environment:
       # Porta HTTP interna que o backend escutará
-      - PORT=
+      - PORT=3131
       # Modo de ambiente da aplicação (ex: production, development)
-      - NODE_ENV=
+      - NODE_ENV=production
       
       # ── Banco de Dados Externo ──────────────────────────────────────────────────
       # Endereço (host) do banco de dados PostgreSQL externo
-      - DB_HOST=
+      - DB_HOST=postgres
       # Porta de conexão do banco de dados PostgreSQL externo
-      - DB_PORT=
+      - DB_PORT=5432
       # Usuário do banco de dados PostgreSQL
-      - DB_USER=
+      - DB_USER=postgres
       # Senha de conexão do banco de dados PostgreSQL
-      - DB_PASSWORD=
+      - DB_PASSWORD=45d79466d26a4b2cab30dc173f9a3cc5
       # Nome do banco de dados do Oráculo
-      - DB_NAME=
+      - DB_NAME=oracle_manager
       
       # ── MinIO/S3 Externo ────────────────────────────────────────────────────────
       # Endpoint S3 de conexão (ex: MinIO local ou AWS S3 / Cloudflare R2)
@@ -113,15 +113,15 @@ services:
           cpus: "1"
           memory: 1024M
       labels:
-        - traefik.enable=true
-        - traefik.http.routers.oraculo.rule=Host(`fonteoculta.aryaraj.shop`)
-        - traefik.http.routers.oraculo.entrypoints=websecure
-        - traefik.http.routers.oraculo.tls.certresolver=letsencryptresolver
-        - traefik.http.routers.oraculo.service=oraculo
-        - traefik.http.services.oraculo.loadbalancer.server.port=3131
-        - traefik.http.services.oraculo.loadbalancer.passHostHeader=true
-        - traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https
-        - traefik.http.routers.oraculo.middlewares=sslheader@docker
+      - traefik.enable=1
+      - traefik.http.routers.oraculo.rule=Host(`fonteoculta.aryaraj.shop`)
+      - traefik.http.routers.oraculo.entrypoints=websecure
+      - traefik.http.routers.oraculo.tls.certresolver=letsencryptresolver
+      - traefik.http.routers.oraculo.service=oraculo
+      - traefik.http.services.oraculo.loadbalancer.server.port=3131
+      - traefik.http.services.oraculo.loadbalancer.passHostHeader=1
+      - traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https
+      - traefik.http.routers.oraculo.middlewares=sslheader@docker
       update_config:
         parallelism: 1
         delay: 10s
