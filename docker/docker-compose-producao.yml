@@ -10,7 +10,7 @@ services:
       - network_swarm_public
     environment:
       # Porta HTTP interna que o backend escutará
-      - PORT=3131
+      - PORT=8000
       # Modo de ambiente da aplicação (ex: production, development)
       - NODE_ENV=production
       
@@ -118,7 +118,7 @@ services:
       - traefik.http.routers.oraculo.entrypoints=websecure
       - traefik.http.routers.oraculo.tls.certresolver=letsencryptresolver
       - traefik.http.routers.oraculo.service=oraculo
-      - traefik.http.services.oraculo.loadbalancer.server.port=3131
+      - traefik.http.services.oraculo.loadbalancer.server.port=8000
       - traefik.http.services.oraculo.loadbalancer.passHostHeader=1
       - traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https
       - traefik.http.routers.oraculo.middlewares=sslheader@docker
